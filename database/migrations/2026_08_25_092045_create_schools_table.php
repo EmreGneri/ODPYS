@@ -13,6 +13,12 @@ return new class extends Migration
     {
         Schema::create('schools', function (Blueprint $table) {
             $table->id();
+            $table->string('name');
+            $table->string('city');
+            $table->string('district');
+            $table->unsignedSmallInteger('lessons_per_day');
+            $table->unsignedSmallInteger('lesson_duration');
+            $table->unsignedSmallInteger('break_duration');
             $table->timestamps();
         });
     }
