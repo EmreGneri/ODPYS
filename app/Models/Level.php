@@ -19,8 +19,8 @@ class Level extends Model
         return $this->belongsTo(School::class);
     }
 
-    public function classes(): HasMany
+    public function sections(): HasMany
     {
-        return $this->hasMany(Classe::class);
+        return $this->hasMany(Section::class);
     }
 }
