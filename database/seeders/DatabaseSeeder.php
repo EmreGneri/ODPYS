@@ -129,6 +129,17 @@ class DatabaseSeeder extends Seeder
                     'is_active' => true,
                     'max_weekly_hours' => 30,
                 ]);
+                                // İlk öğretmene giriş hesabı aç
+                if ($ogretmenSirasi === 1) {
+                    $kullanici = User::create([
+                        'name' => $ad . ' ' . $soyad,
+                        'email' => 'ogretmen@okul.edu.tr',
+                        'password' => 'password',
+                        'role' => 'teacher',
+                    ]);
+
+                    $ogretmen->update(['user_id' => $kullanici->id]);
+                }
 
                 // Öğretmen bu dersi tüm seviyelerde verebilir
                 foreach ($seviyeler as $seviye) {
