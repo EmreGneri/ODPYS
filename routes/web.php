@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\SchoolController;
 use App\Http\Controllers\LevelController;
+use App\Http\Controllers\SectionController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -29,6 +30,9 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
     Route::resource('seviyeler', LevelController::class)
         ->parameters(['seviyeler' => 'seviye']);
+
+    Route::resource('subeler', SectionController::class)
+        ->parameters(['subeler' => 'sube']);
 });
 
 require __DIR__.'/auth.php';

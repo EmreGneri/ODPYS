@@ -11,6 +11,7 @@ class Section extends Model
     protected $fillable =[
         'level_id',
         'name',
+        'room_id',
     ];
 
     public function level(): BelongsTo
