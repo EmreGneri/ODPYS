@@ -18,6 +18,9 @@
                     <x-nav-link :href="route('okul.index')" :active="request()->routeIs('okul.*')">
                     Okul Ayarları
                     </x-nav-link>
+                    <x-nav-link :href="route('seviyeler.index')" :active="request()->routeIs('seviyeler.*')">
+    Seviyeler
+</x-nav-link>
                 </div>
             </div>
 
