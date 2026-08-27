@@ -22,6 +22,8 @@ Route::middleware('auth')->group(function () {
 // Sadece yönetici
 Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/okul', [SchoolController::class, 'index'])->name('okul.index');
+    Route::get('/okul/duzenle', [SchoolController::class, 'edit'])->name('okul.edit');
+    Route::put('/okul', [SchoolController::class, 'update'])->name('okul.update');
 });
 
 require __DIR__.'/auth.php';

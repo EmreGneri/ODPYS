@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 use App\Models\School;
 use Illuminate\Http\Request;
 
+
 class SchoolController extends Controller
 {
     public function index()
@@ -24,5 +25,29 @@ class SchoolController extends Controller
             'okul' => $okul,
             'gunAdlari' => $gunAdlari,
         ]);
+    }
+        public function edit()
+    {
+        $okul = School::first();
+
+        return view('schools.edit', ['okul' => $okul]);
+    }
+
+    public function update(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'city' => 'required|string|max:255',
+            'district' => 'required|string|max:255',
+            'lessons_per_day' => 'required|integer|min:1|max:20',
+            'lesson_duration' => 'required|integer|min:5|max:120',
+            'break_duration' => 'required|integer|min:0|max:60',
+        ]);
+
+        School::first()->update($validated);
+
+        return redirect()
+            ->route('okul.index')
+            ->with('success', 'Okul ayarları güncellendi.');
     }
 }
