@@ -59,7 +59,39 @@
                         </div>
                     </div>
 
-                    <div class="flex items-center gap-4">
+                    {{-- Eğitim günleri ve başlangıç saatleri --}}
+                    <div class="border-t pt-6">
+                        <h3 class="font-medium text-gray-900 mb-1">Eğitim Günleri ve Başlangıç Saatleri</h3>
+                        <p class="text-sm text-gray-500 mb-4">
+                            Eğitim verilen günleri işaretleyin ve her gün için ders başlangıç saatini belirtin.
+                        </p>
+
+                        <div class="space-y-2">
+                            @foreach ($gunVerileri as $no => $g)
+                                <div class="flex items-center gap-4">
+                                    <label class="flex items-center gap-2 w-36">
+                                        <input type="checkbox"
+                                               name="days[{{ $no }}][is_active]"
+                                               value="1"
+                                               @checked(old("days.$no.is_active", $g['aktif']))
+                                               class="rounded border-gray-300 text-gray-800 shadow-sm">
+                                        <span class="text-sm">{{ $g['ad'] }}</span>
+                                    </label>
+
+                                    <input type="time"
+                                           name="days[{{ $no }}][start_time]"
+                                           value="{{ old("days.$no.start_time", $g['saat']) }}"
+                                           class="rounded-md border-gray-300 shadow-sm text-sm">
+
+                                    <x-input-error :messages="$errors->get("days.$no.start_time")" />
+                                </div>
+                            @endforeach
+                        </div>
+
+                        <x-input-error :messages="$errors->get('days')" class="mt-2" />
+                    </div>
+
+                    <div class="flex items-center gap-4 border-t pt-6">
                         <x-primary-button>Kaydet</x-primary-button>
                         <a href="{{ route('okul.index') }}" class="text-sm text-gray-600 hover:text-gray-900">
                             Vazgeç
