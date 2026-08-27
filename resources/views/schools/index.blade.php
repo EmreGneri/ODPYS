@@ -7,7 +7,8 @@
 
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
-                        @if (session('success'))
+
+            @if (session('success'))
                 <div class="bg-green-100 border border-green-300 text-green-800 px-4 py-3 rounded">
                     {{ session('success') }}
                 </div>
@@ -70,6 +71,37 @@
                                 </td>
                             </tr>
                         @endforeach
+                    </tbody>
+                </table>
+            </div>
+
+            {{-- Ders saatleri --}}
+            <div class="bg-white shadow-sm sm:rounded-lg p-6">
+                <h3 class="text-lg font-medium mb-1">Ders Saatleri</h3>
+                <p class="text-sm text-gray-500 mb-4">
+                    Okul ayarlarına göre otomatik hesaplanmıştır.
+                </p>
+
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b text-left text-gray-500">
+                            <th class="py-2 w-20"></th>
+                            @foreach ($aktifGunler as $no => $ad)
+                                <th class="py-2">{{ $ad }}</th>
+                            @endforeach
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for ($slot = 1; $slot <= $okul->lessons_per_day; $slot++)
+                            <tr class="border-b">
+                                <td class="py-2 text-gray-500">{{ $slot }}. ders</td>
+                                @foreach ($aktifGunler as $no => $ad)
+                                    <td class="py-2">
+                                        {{ $dersSaatleri[$no][$slot]['baslangic'] }}–{{ $dersSaatleri[$no][$slot]['bitis'] }}
+                                    </td>
+                                @endforeach
+                            </tr>
+                        @endfor
                     </tbody>
                 </table>
             </div>

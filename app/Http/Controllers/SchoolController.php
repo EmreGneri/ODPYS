@@ -7,9 +7,10 @@ use Illuminate\Http\Request;
 
 class SchoolController extends Controller
 {
-    public function index()
+        public function index()
     {
         $okul = School::with('days')->first();
+
         $gunAdlari = [
             1 => 'Pazartesi',
             2 => 'Salı',
@@ -20,10 +21,23 @@ class SchoolController extends Controller
             7 => 'Pazar',
         ];
 
+        $aktifGunler = [];
+        $dersSaatleri = [];
+
+        foreach ($gunAdlari as $no => $ad) {
+            $gun = $okul->days->firstWhere('weekday', $no);
+
+            if ($gun && $gun->is_active) {
+                $aktifGunler[$no] = $ad;
+                $dersSaatleri[$no] = $okul->slotSaatleri($no);
+            }
+        }
 
         return view('schools.index', [
             'okul' => $okul,
             'gunAdlari' => $gunAdlari,
+            'aktifGunler' => $aktifGunler,
+            'dersSaatleri' => $dersSaatleri,
         ]);
     }
         public function edit()
