@@ -33,6 +33,10 @@
                         Derslikler
                     </x-nav-link>
 
+                    <x-nav-link :href="route('dersler.index')" :active="request()->routeIs('dersler.*')">
+                        Dersler
+                    </x-nav-link>
+
                 </div>
             </div>
 
@@ -157,6 +161,14 @@
                 :active="request()->routeIs('derslikler.*')">
 
                 Derslikler
+
+            </x-responsive-nav-link>
+
+            <x-responsive-nav-link
+                :href="route('dersler.index')"
+                :active="request()->routeIs('dersler.*')">
+
+                Dersler
 
             </x-responsive-nav-link>
 

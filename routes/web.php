@@ -6,14 +6,16 @@ use App\Http\Controllers\SchoolController;
 use App\Http\Controllers\LevelController;
 use App\Http\Controllers\SectionController;
 use App\Http\Controllers\RoomController;
+use App\Http\Controllers\CourseController;
+use App\Http\Controllers\DashboardController;
 
 Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('/dashboard', [DashboardController::class, 'index'])
+    ->middleware(['auth', 'verified'])
+    ->name('dashboard');
 
 // Giriş yapmış herkes
 Route::middleware('auth')->group(function () {
@@ -36,6 +38,8 @@ Route::middleware(['auth', 'admin'])->group(function () {
         ->parameters(['subeler' => 'sube']);
     Route::resource('derslikler', RoomController::class)
         ->parameters(['derslikler' => 'derslik']);
+    Route::resource('dersler', CourseController::class)
+        ->parameters(['dersler' => 'ders']);
 });
 
 require __DIR__.'/auth.php';
