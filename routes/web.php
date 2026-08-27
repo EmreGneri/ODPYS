@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\SchoolController;
 use App\Http\Controllers\LevelController;
 use App\Http\Controllers\SectionController;
+use App\Http\Controllers\RoomController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -33,6 +34,8 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
     Route::resource('subeler', SectionController::class)
         ->parameters(['subeler' => 'sube']);
+    Route::resource('derslikler', RoomController::class)
+        ->parameters(['derslikler' => 'derslik']);
 });
 
 require __DIR__.'/auth.php';

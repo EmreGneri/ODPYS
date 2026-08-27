@@ -29,6 +29,10 @@
                         Şubeler
                     </x-nav-link>
 
+                    <x-nav-link :href="route('derslikler.index')" :active="request()->routeIs('derslikler.*')">
+                        Derslikler
+                    </x-nav-link>
+
                 </div>
             </div>
 
@@ -145,6 +149,14 @@
                 :active="request()->routeIs('subeler.*')">
 
                 Şubeler
+
+            </x-responsive-nav-link>
+
+            <x-responsive-nav-link
+                :href="route('derslikler.index')"
+                :active="request()->routeIs('derslikler.*')">
+
+                Derslikler
 
             </x-responsive-nav-link>
 
