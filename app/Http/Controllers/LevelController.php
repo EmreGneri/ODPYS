@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Level;
 use App\Models\School;
 use Illuminate\Http\Request;
+use App\Models\CourseLevel;
+use App\Models\TeacherCourseLevel;
 
 class LevelController extends Controller
 {
@@ -67,7 +69,7 @@ class LevelController extends Controller
         $seviye->update([
             'name' => $validated['grade_number'] . '. Sınıf',
             'grade_number' => $validated['grade_number'],
-        ]);
+        ]); 
 
         return redirect()
             ->route('seviyeler.index')
@@ -79,6 +81,30 @@ class LevelController extends Controller
      */
     public function destroy(Level $seviye)
     {
+        $subeSayisi = $seviye->sections()->count();
+
+        if ($subeSayisi > 0) {
+            return redirect()
+                ->route('seviyeler.index')
+                ->with('error', "{$seviye->name} silinemez: bu seviyeye bağlı {$subeSayisi} şube var. Önce şubeleri silin.");
+        }
+
+        $mufredatSayisi = CourseLevel::where('level_id', $seviye->id)->count();
+
+        if ($mufredatSayisi > 0) {
+            return redirect()
+                ->route('seviyeler.index')
+                ->with('error', "{$seviye->name} silinemez: {$mufredatSayisi} dersin haftalık saati bu seviyeye tanımlı. Önce ders tanımlarından bu seviyeyi kaldırın.");
+        }
+
+        $yetkiSayisi = TeacherCourseLevel::where('level_id', $seviye->id)->count();
+
+        if ($yetkiSayisi > 0) {
+            return redirect()
+                ->route('seviyeler.index')
+                ->with('error', "{$seviye->name} silinemez: {$yetkiSayisi} öğretmen yetkisi bu seviyeye bağlı.");
+        }
+
         $seviye->delete();
 
         return redirect()

@@ -7,6 +7,7 @@ use App\Models\CourseLevel;
 use App\Models\Level;
 use App\Models\School;
 use Illuminate\Http\Request;
+use App\Models\TeacherCourseLevel;
 
 class CourseController extends Controller
 {
@@ -82,6 +83,22 @@ class CourseController extends Controller
 
     public function destroy(Course $ders)
     {
+        $seviyeSayisi = CourseLevel::where('course_id', $ders->id)->count();
+
+        if ($seviyeSayisi > 0) {
+            return redirect()
+                ->route('dersler.index')
+                ->with('error', "{$ders->name} silinemez: {$seviyeSayisi} seviyeye haftalık saat tanımlı. Önce düzenleme ekranından seviye işaretlerini kaldırın.");
+        }
+
+        $yetkiSayisi = TeacherCourseLevel::where('course_id', $ders->id)->count();
+
+        if ($yetkiSayisi > 0) {
+            return redirect()
+                ->route('dersler.index')
+                ->with('error', "{$ders->name} silinemez: {$yetkiSayisi} öğretmen yetkisi bu derse bağlı.");
+        }
+
         $ders->delete();
 
         return redirect()

@@ -14,6 +14,12 @@
                 </div>
             @endif
 
+            @if (session('error'))
+                <div class="bg-red-100 border border-red-300 text-red-800 px-4 py-3 rounded">
+                    {{ session('error') }}
+                </div>
+            @endif
+
             <div>
                 <a href="{{ route('seviyeler.create') }}"
                    class="inline-block px-4 py-2 bg-gray-800 text-white text-sm rounded hover:bg-gray-700">
@@ -31,7 +37,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach ($seviyeler as $seviye)
+                        @forelse ($seviyeler as $seviye)
                             <tr class="border-b">
                                 <td class="py-2">{{ $seviye->name }}</td>
                                 <td class="py-2">{{ $seviye->sections_count }}</td>
@@ -41,14 +47,20 @@
 
                                     <form method="POST" action="{{ route('seviyeler.destroy', $seviye) }}"
                                           class="inline"
-                                          onsubmit="return confirm('Bu seviyeyi silmek istediğinize emin misiniz? Bağlı şubeler de silinecek.');">
+                                          onsubmit="return confirm('{{ $seviye->name }} silinsin mi?');">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="text-red-600 hover:underline">Sil</button>
                                     </form>
                                 </td>
                             </tr>
-                        @endforeach
+                        @empty
+                            <tr>
+                                <td colspan="3" class="py-6 text-center text-gray-500">
+                                    Henüz seviye tanımlanmamış.
+                                </td>
+                            </tr>
+                        @endforelse
                     </tbody>
                 </table>
             </div>

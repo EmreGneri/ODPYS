@@ -14,6 +14,12 @@
                 </div>
             @endif
 
+            @if (session('error'))
+                <div class="bg-red-100 border border-red-300 text-red-800 px-4 py-3 rounded">
+                    {{ session('error') }}
+                </div>
+            @endif
+
             <div>
                 <a href="{{ route('dersler.create') }}"
                    class="inline-block px-4 py-2 bg-gray-800 text-white text-sm rounded hover:bg-gray-700">
@@ -32,7 +38,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach ($dersler as $ders)
+                        @forelse ($dersler as $ders)
                             <tr class="border-b">
                                 <td class="py-2 align-top">{{ $ders->name }}</td>
                                 <td class="py-2 align-top">{{ number_format($ders->hourly_rate, 2, ',', '.') }} TL</td>
@@ -51,14 +57,20 @@
 
                                     <form method="POST" action="{{ route('dersler.destroy', $ders) }}"
                                           class="inline"
-                                          onsubmit="return confirm('Bu dersi silmek istediğinize emin misiniz? Seviye atamaları da silinecek.');">
+                                          onsubmit="return confirm('{{ $ders->name }} dersi silinsin mi?');">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="text-red-600 hover:underline">Sil</button>
                                     </form>
                                 </td>
                             </tr>
-                        @endforeach
+                        @empty
+                            <tr>
+                                <td colspan="4" class="py-6 text-center text-gray-500">
+                                    Henüz ders tanımlanmamış.
+                                </td>
+                            </tr>
+                        @endforelse
                     </tbody>
                 </table>
             </div>
