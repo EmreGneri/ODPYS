@@ -2,10 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Course;
+use App\Models\Level;
 use App\Models\School;
 use App\Models\SectionCourseTeacher;
 use App\Models\Teacher;
+use App\Models\TeacherCourseLevel;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
@@ -14,6 +18,9 @@ class TeacherController extends Controller
     public function index(Request $request)
     {
         $ogretmenler = Teacher::query()
+            // Branş sütunu için yetkiler lazım. with() olmadan
+            // 20 öğretmen = 21 sorgu olurdu (N+1).
+            ->with('courseLevels')
             ->when($request->filled('ara'), function ($sorgu) use ($request) {
                 $terim = '%' . $request->ara . '%';
 
@@ -33,7 +40,12 @@ class TeacherController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        return view('teachers.index', ['ogretmenler' => $ogretmenler]);
+        return view('teachers.index', [
+            'ogretmenler' => $ogretmenler,
+            // id => ad haritası. Tek sorgu, her satırda ders adı aramak
+            // için ayrıca veritabanına gidilmiyor.
+            'dersAdlari' => Course::pluck('name', 'id'),
+        ]);
     }
 
     public function create()
@@ -121,6 +133,73 @@ class TeacherController extends Controller
         return redirect()
             ->route('ogretmenler.index')
             ->with('success', 'Öğretmen silindi.');
+    }
+
+    /**
+     * Şartname 2.4 — Öğretmene ders/branş atama ekranı.
+     * Atama SEVİYE BAZLI: "Ahmet Hoca → Türkçe → 9. sınıf"
+     */
+    public function dersler(Teacher $ogretmen)
+    {
+        // Mevcut yetkiler: "dersId-seviyeId" => true
+        // Blade'de her kutu için tek tek sorgu atmamak amacıyla
+        // önceden düz bir haritaya çeviriyorum.
+        $mevcut = TeacherCourseLevel::where('teacher_id', $ogretmen->id)
+            ->get()
+            ->mapWithKeys(fn ($y) => [$y->course_id . '-' . $y->level_id => true])
+            ->all();
+
+        return view('teachers.courses', [
+            'ogretmen' => $ogretmen,
+            'dersler' => Course::orderBy('name')->get(),
+            'seviyeler' => Level::orderBy('grade_number')->get(),
+            'mevcut' => $mevcut,
+        ]);
+    }
+
+    public function derslerKaydet(Request $request, Teacher $ogretmen)
+    {
+        // Geçerli id kümeleri — kullanıcı formu kurcalarsa uydurma
+        // id'ler yazılmasın diye. flip() ile isset() kontrolü O(1).
+        $gecerliDersler = Course::pluck('id')->flip();
+        $gecerliSeviyeler = Level::pluck('id')->flip();
+
+        $satirlar = [];
+
+        foreach ($request->input('yetkiler', []) as $dersId => $seviyeler) {
+            if (! isset($gecerliDersler[$dersId]) || ! is_array($seviyeler)) {
+                continue;
+            }
+
+            foreach (array_keys($seviyeler) as $seviyeId) {
+                if (! isset($gecerliSeviyeler[$seviyeId])) {
+                    continue;
+                }
+
+                $satirlar[] = [
+                    'teacher_id' => $ogretmen->id,
+                    'course_id' => (int) $dersId,
+                    'level_id' => (int) $seviyeId,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+        }
+
+        // Sil-ve-yeniden-yaz: hangi kutunun açıldığını/kapandığını
+        // tek tek karşılaştırmaktan çok daha basit ve hatasız.
+        // İşlem içinde olduğu için yarım kalma riski yok.
+        DB::transaction(function () use ($ogretmen, $satirlar) {
+            TeacherCourseLevel::where('teacher_id', $ogretmen->id)->delete();
+
+            foreach (array_chunk($satirlar, 500) as $parca) {
+                TeacherCourseLevel::insert($parca);
+            }
+        });
+
+        return redirect()
+            ->route('ogretmenler.index')
+            ->with('success', $ogretmen->full_name . ' için ' . count($satirlar) . ' ders-seviye yetkisi kaydedildi.');
     }
 
     /**

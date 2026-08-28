@@ -9,6 +9,7 @@ use App\Http\Controllers\SchoolController;
 use App\Http\Controllers\SectionController;
 use App\Http\Controllers\TeacherController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ProgramController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -50,6 +51,15 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::resource('ogretmenler', TeacherController::class)
         ->parameters(['ogretmenler' => 'ogretmen'])
         ->except(['show']);
+
+    Route::get('/ogretmenler/{ogretmen}/dersler', [TeacherController::class, 'dersler'])
+        ->name('ogretmenler.dersler');
+
+    Route::put('/ogretmenler/{ogretmen}/dersler', [TeacherController::class, 'derslerKaydet'])
+        ->name('ogretmenler.dersler.kaydet');
+
+    Route::get('/program', [ProgramController::class, 'index'])->name('program.index');
+    Route::post('/program/atama', [ProgramController::class, 'atama'])->name('program.atama');
 });
 
 require __DIR__.'/auth.php';

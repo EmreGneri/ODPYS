@@ -48,13 +48,14 @@
                 </a>
             </div>
 
-            <div class="bg-white shadow-sm sm:rounded-lg overflow-hidden">
+            <div class="bg-white shadow-sm sm:rounded-lg overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200 text-sm">
                     <thead class="bg-gray-50">
                         <tr>
                             <th class="px-6 py-3 text-left font-medium text-gray-500">Ad Soyad</th>
                             <th class="px-6 py-3 text-left font-medium text-gray-500">TC Kimlik</th>
                             <th class="px-6 py-3 text-left font-medium text-gray-500">E-posta</th>
+                            <th class="px-6 py-3 text-left font-medium text-gray-500">Branş</th>
                             <th class="px-6 py-3 text-left font-medium text-gray-500">Azami Saat</th>
                             <th class="px-6 py-3 text-left font-medium text-gray-500">Özgeçmiş</th>
                             <th class="px-6 py-3 text-left font-medium text-gray-500">Durum</th>
@@ -79,6 +80,21 @@
                                 </td>
                                 <td class="px-6 py-3 text-gray-600">{{ $ogretmen->national_id }}</td>
                                 <td class="px-6 py-3 text-gray-600">{{ $ogretmen->email }}</td>
+
+                                <td class="px-6 py-3">
+                                    @php
+                                        $bransIds = $ogretmen->courseLevels->pluck('course_id')->unique();
+                                    @endphp
+
+                                    @if ($bransIds->isEmpty())
+                                        <span class="text-amber-600 text-xs">Ders atanmamış</span>
+                                    @else
+                                        <span class="text-gray-700">
+                                            {{ $bransIds->map(fn ($id) => $dersAdlari[$id] ?? '?')->join(', ') }}
+                                        </span>
+                                    @endif
+                                </td>
+
                                 <td class="px-6 py-3">{{ $ogretmen->max_weekly_hours }}</td>
                                 <td class="px-6 py-3">
                                     @if ($ogretmen->cv_path)
@@ -96,6 +112,9 @@
                                     @endif
                                 </td>
                                 <td class="px-6 py-3 text-right space-x-3 whitespace-nowrap">
+                                    <a href="{{ route('ogretmenler.dersler', $ogretmen) }}"
+                                       class="text-indigo-600 hover:text-indigo-900">Dersler</a>
+
                                     <a href="{{ route('ogretmenler.edit', $ogretmen) }}"
                                        class="text-indigo-600 hover:text-indigo-900">Düzenle</a>
 
@@ -110,7 +129,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="px-6 py-8 text-center text-gray-500">
+                                <td colspan="8" class="px-6 py-8 text-center text-gray-500">
                                     @if (request('ara') || request('durum'))
                                         Aramanızla eşleşen öğretmen bulunamadı.
                                     @else

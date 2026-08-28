@@ -11,7 +11,7 @@
                 </div>
 
                 <!-- Navigation Links -->
-                <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
+                <div class="hidden space-x-6 sm:-my-px sm:ms-10 sm:flex">
 
                     <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                         {{ __('Dashboard') }}
@@ -39,6 +39,10 @@
 
                     <x-nav-link :href="route('dersler.index')" :active="request()->routeIs('dersler.*')">
                         Dersler
+                    </x-nav-link>
+
+                    <x-nav-link :href="route('program.index')" :active="request()->routeIs('program.*')">
+                        Program
                     </x-nav-link>
 
                 </div>
@@ -181,6 +185,14 @@
                 :active="request()->routeIs('dersler.*')">
 
                 Dersler
+
+            </x-responsive-nav-link>
+
+            <x-responsive-nav-link
+                :href="route('program.index')"
+                :active="request()->routeIs('program.*')">
+
+                Program
 
             </x-responsive-nav-link>
 
