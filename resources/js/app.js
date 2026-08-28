@@ -1,7 +1,13 @@
+
+import Alpine from 'alpinejs';
 import { createApp } from 'vue';
+
+window.Alpine = Alpine;
+Alpine.start();
 
 document.querySelectorAll('[data-vue-component]').forEach((el) => {
     const componentName = el.dataset.vueComponent;
+
     import(`./components/${componentName}.vue`).then((module) => {
         const props = {};
 
