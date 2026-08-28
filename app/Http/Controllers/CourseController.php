@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\CourseRequest;
 use App\Models\Course;
 use App\Models\CourseLevel;
 use App\Models\Level;
 use App\Models\School;
-use Illuminate\Http\Request;
 use App\Models\TeacherCourseLevel;
 
 class CourseController extends Controller
@@ -25,19 +25,11 @@ class CourseController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store(CourseRequest $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:courses,name',
-            'hourly_rate' => 'required|numeric|min:0|max:999999',
-            'seviyeler' => 'nullable|array',
-            'seviyeler.*.secili' => 'nullable|boolean',
-            'seviyeler.*.weekly_hours' => 'nullable|integer|min:1|max:40',
-        ]);
+        $validated = $request->validated();
 
-        $okul = School::first();
-
-        $ders = $okul->courses()->create([
+        $ders = School::first()->courses()->create([
             'name' => $validated['name'],
             'hourly_rate' => $validated['hourly_rate'],
         ]);
@@ -59,15 +51,9 @@ class CourseController extends Controller
         ]);
     }
 
-    public function update(Request $request, Course $ders)
+    public function update(CourseRequest $request, Course $ders)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:courses,name,' . $ders->id,
-            'hourly_rate' => 'required|numeric|min:0|max:999999',
-            'seviyeler' => 'nullable|array',
-            'seviyeler.*.secili' => 'nullable|boolean',
-            'seviyeler.*.weekly_hours' => 'nullable|integer|min:1|max:40',
-        ]);
+        $validated = $request->validated();
 
         $ders->update([
             'name' => $validated['name'],
@@ -109,7 +95,8 @@ class CourseController extends Controller
     private function seviyeSaatleriniKaydet(Course $ders, array $seviyeVerileri): void
     {
         foreach ($seviyeVerileri as $levelId => $veri) {
-            $secili = isset($veri['secili']);
+            // isset yerine ! empty: gizli alan "0" gönderirse isset true döner
+            $secili = ! empty($veri['secili']);
             $saat = $veri['weekly_hours'] ?? null;
 
             if ($secili && $saat) {
