@@ -1,13 +1,14 @@
 <?php
 
-use App\Http\Controllers\ProfileController;
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\SchoolController;
-use App\Http\Controllers\LevelController;
-use App\Http\Controllers\SectionController;
-use App\Http\Controllers\RoomController;
 use App\Http\Controllers\CourseController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\LevelController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\RoomController;
+use App\Http\Controllers\SchoolController;
+use App\Http\Controllers\SectionController;
+use App\Http\Controllers\TeacherController;
+use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return view('welcome');
@@ -25,21 +26,30 @@ Route::middleware('auth')->group(function () {
 });
 
 // Sadece yönetici
-
 Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/okul', [SchoolController::class, 'index'])->name('okul.index');
     Route::get('/okul/duzenle', [SchoolController::class, 'edit'])->name('okul.edit');
     Route::put('/okul', [SchoolController::class, 'update'])->name('okul.update');
 
     Route::resource('seviyeler', LevelController::class)
-        ->parameters(['seviyeler' => 'seviye']);
+        ->parameters(['seviyeler' => 'seviye'])
+        ->except(['show']);
 
     Route::resource('subeler', SectionController::class)
-        ->parameters(['subeler' => 'sube']);
+        ->parameters(['subeler' => 'sube'])
+        ->except(['show']);
+
     Route::resource('derslikler', RoomController::class)
-        ->parameters(['derslikler' => 'derslik']);
+        ->parameters(['derslikler' => 'derslik'])
+        ->except(['show']);
+
     Route::resource('dersler', CourseController::class)
-        ->parameters(['dersler' => 'ders']);
+        ->parameters(['dersler' => 'ders'])
+        ->except(['show']);
+
+    Route::resource('ogretmenler', TeacherController::class)
+        ->parameters(['ogretmenler' => 'ogretmen'])
+        ->except(['show']);
 });
 
 require __DIR__.'/auth.php';

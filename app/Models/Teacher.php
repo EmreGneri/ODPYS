@@ -22,6 +22,11 @@ class Teacher extends Model
         'max_weekly_hours',
     ];
 
+    protected $casts = [
+        'birth_date' => 'date',
+        'is_active' => 'boolean',
+    ];
+
     public function school(): BelongsTo
     {
         return $this->belongsTo(School::class);
@@ -40,5 +45,30 @@ class Teacher extends Model
     public function leaveRequests(): HasMany
     {
         return $this->hasMany(LeaveRequest::class);
+    }
+
+    /**
+     * Öğretmenin hangi dersi hangi seviyede verebildiği (yetki).
+     * Şartname 2.4 — "Ahmet Hoca → Türkçe → 9. sınıf"
+     */
+    public function courseLevels(): HasMany
+    {
+        return $this->hasMany(TeacherCourseLevel::class);
+    }
+
+    /**
+     * Sihirbazın ürettiği şube-ders-öğretmen atamaları.
+     */
+    public function sectionCourses(): HasMany
+    {
+        return $this->hasMany(SectionCourseTeacher::class);
+    }
+
+    /**
+     * Listede ve başlıklarda kullanmak için: "Ahmet Yılmaz"
+     */
+    public function getFullNameAttribute(): string
+    {
+        return $this->first_name . ' ' . $this->last_name;
     }
 }
