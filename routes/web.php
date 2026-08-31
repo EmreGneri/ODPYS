@@ -1,16 +1,18 @@
 <?php
 
+use App\Http\Controllers\CizelgeController;
 use App\Http\Controllers\CourseController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\IzinController;
 use App\Http\Controllers\LevelController;
+use App\Http\Controllers\OgretmenPanelController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ProgramController;
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\SchoolController;
 use App\Http\Controllers\SectionController;
 use App\Http\Controllers\TeacherController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\CizelgeController;
-use App\Http\Controllers\ProgramController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -25,6 +27,17 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+});
+
+// Sadece öğretmen — sartname 2.7.4: yalnizca izin alma ve kendi
+// bilgilerine erisim. EnsureUserIsTeacher hem role='teacher' hem
+// teachers kaydina bagli olma sartlarinin ikisini birden ariyor.
+Route::middleware(['auth', 'teacher'])->prefix('ogretmen')->name('ogretmen.')->group(function () {
+    Route::get('/panel', [OgretmenPanelController::class, 'index'])->name('panel');
+
+    Route::get('/izinler', [IzinController::class, 'index'])->name('izinler.index');
+    Route::get('/izinler/olustur', [IzinController::class, 'create'])->name('izinler.create');
+    Route::post('/izinler', [IzinController::class, 'store'])->name('izinler.store');
 });
 
 // Sadece yönetici
@@ -64,7 +77,6 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
     Route::get('/program', [ProgramController::class, 'index'])->name('program.index');
     Route::post('/program/atama', [ProgramController::class, 'atama'])->name('program.atama');
-
     Route::post('/program/yerlestir', [ProgramController::class, 'yerlestir'])->name('program.yerlestir');
 
     // Sartname 5. bolum ciktilari
@@ -73,6 +85,11 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/cizelge/sube/{sube}', [CizelgeController::class, 'sube'])->name('cizelge.sube');
     Route::get('/cizelge/ogretmen/{ogretmen}', [CizelgeController::class, 'ogretmen'])->name('cizelge.ogretmen');
 
+    // Sartname 2.7.2 — izin onay ekrani
+    Route::get('/izinler', [IzinController::class, 'yonetimIndex'])->name('izinler.index');
+    Route::get('/izinler/{izin}', [IzinController::class, 'goster'])->name('izinler.goster');
+    Route::post('/izinler/{izin}/onayla', [IzinController::class, 'onayla'])->name('izinler.onayla');
+    Route::post('/izinler/{izin}/reddet', [IzinController::class, 'reddet'])->name('izinler.reddet');
 });
 
 require __DIR__.'/auth.php';

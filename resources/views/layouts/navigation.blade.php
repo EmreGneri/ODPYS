@@ -51,6 +51,18 @@
                         Çizelge
                     </x-nav-link>
 
+                    <x-nav-link :href="route('izinler.index')" :active="request()->routeIs('izinler.*')">
+                        İzin Talepleri
+                    </x-nav-link>
+
+                    @endif
+
+                    @if (auth()->user()->role === 'teacher')
+
+                    <x-nav-link :href="route('ogretmen.izinler.index')" :active="request()->routeIs('ogretmen.izinler.*')">
+                        İzinlerim
+                    </x-nav-link>
+
                     @endif
 
                 </div>
@@ -212,6 +224,26 @@
                 :active="request()->routeIs('cizelge.*')">
 
                 Çizelge
+
+            </x-responsive-nav-link>
+
+            <x-responsive-nav-link
+                :href="route('izinler.index')"
+                :active="request()->routeIs('izinler.*')">
+
+                İzin Talepleri
+
+            </x-responsive-nav-link>
+
+            @endif
+
+            @if (auth()->user()->role === 'teacher')
+
+            <x-responsive-nav-link
+                :href="route('ogretmen.izinler.index')"
+                :active="request()->routeIs('ogretmen.izinler.*')">
+
+                İzinlerim
 
             </x-responsive-nav-link>
 

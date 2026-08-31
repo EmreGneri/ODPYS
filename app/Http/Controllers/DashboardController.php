@@ -9,11 +9,21 @@ use App\Models\ScheduleEntry;
 use App\Models\School;
 use App\Models\Section;
 use App\Models\Teacher;
+use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        // Ogretmen bu sayfaya gelirse kendi paneline yonlendiriyorum.
+        // Asagidaki icerik (sube/ders/derslik sayilari, admin
+        // ekranlarina baglantilar) tamamen yonetici icin - sartname
+        // 2.7.4 "ogretmen yalnizca izin alma ve kendi bilgilerine
+        // erisim saglayabilmelidir" diyor, bu kartlar o siniri asardi.
+        if ($request->user()->role === 'teacher') {
+            return redirect()->route('ogretmen.panel');
+        }
+
         $okul = School::first();
 
         return view('dashboard', [
