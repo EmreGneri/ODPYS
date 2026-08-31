@@ -83,9 +83,22 @@
                                             @php $hucre = $izgara[$gunNo][$slot] ?? null; @endphp
                                             <td class="px-3 py-2 align-top">
                                                 @if ($hucre)
-                                                    <div class="rounded border border-gray-200 bg-gray-50 px-2 py-1.5">
-                                                        <div class="font-medium text-gray-800">{{ $hucre['ust'] }}</div>
-                                                        <div class="text-xs text-gray-500">{{ $hucre['alt'] }}</div>
+                                                    <div class="rounded border px-2 py-1.5
+                                                        {{ ($hucre['izinli'] ?? false)
+                                                            ? 'border-amber-300 bg-amber-50'
+                                                            : 'border-gray-200 bg-gray-50' }}">
+                                                        @if ($hucre['izinli'] ?? false)
+                                                            <div class="text-xs font-medium text-amber-800">İzinli</div>
+                                                            <div class="text-xs text-amber-700">
+                                                                Normalde: {{ $hucre['ust'] }} · {{ $hucre['alt'] }}
+                                                            </div>
+                                                            @if ($hucre['izinSebep'])
+                                                                <div class="text-xs text-amber-600 italic">{{ $hucre['izinSebep'] }}</div>
+                                                            @endif
+                                                        @else
+                                                            <div class="font-medium text-gray-800">{{ $hucre['ust'] }}</div>
+                                                            <div class="text-xs text-gray-500">{{ $hucre['alt'] }}</div>
+                                                        @endif
                                                         <div class="text-xs text-gray-400 tabular-nums mt-0.5">
                                                             {{ $saatler[$gunNo][$slot]['baslangic'] ?? '' }}-{{ $saatler[$gunNo][$slot]['bitis'] ?? '' }}
                                                         </div>
@@ -102,8 +115,8 @@
                     </div>
 
                     <p class="text-xs text-gray-500 mt-3">
-                        Bu, haftalık şablon program. Onaylı izinleriniz burada değil,
-                        "İzin Taleplerim" ekranında görünüyor.
+                        Bu haftanın onaylı izinleri, ilgili ders saatlerinde "İzinli" olarak
+                        işaretlenir. Tüm izin geçmişiniz "İzin Taleplerim" ekranında.
                     </p>
                 @endif
             </div>
