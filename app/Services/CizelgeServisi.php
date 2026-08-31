@@ -9,6 +9,7 @@ use App\Models\SchoolDay;
 use App\Models\Section;
 use App\Models\Teacher;
 use App\Models\TeacherCourseLevel;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -34,12 +35,21 @@ class CizelgeServisi
         7 => 'Pazar',
     ];
 
+    public function __construct(private IzinServisi $izinServisi)
+    {
+    }
+
     /**
      * Bir subenin haftalik cizelgesi. Sartname 5.1
+     *
+     * Onayli izinle cakisan hucreler isaretlenir (sartname 2.7.3).
+     * $haftaBasi verilmezse bugunun haftasi kullanilir - bu ekranda
+     * hafta secici yok, "su an" gorunumu.
      */
-    public function subeCizelgesi(Section $sube): array
+    public function subeCizelgesi(Section $sube, ?Carbon $haftaBasi = null): array
     {
-        $okul = School::with('days')->first();
+        $okul = School::aktif()?->load('days');
+        $haftaBasi = $haftaBasi ?? Carbon::now()->startOfWeek(Carbon::MONDAY);
 
         // Tek sorgu, iliskiler onden yukleniyor. Izgarada 35 hucre var
         // ve her hucrede ders ile ogretmen adi gosteriliyor; with()
@@ -47,6 +57,26 @@ class CizelgeServisi
         $kayitlar = ScheduleEntry::with(['course', 'teacher'])
             ->where('section_id', $sube->id)
             ->get();
+
+        // Subede birden fazla ogretmen ders verebilir - her biri icin
+        // ayri ayri izinliHucreler soruyorum, sonra SADECE bu subedeki
+        // kendi hucresine denk gelenleri isaretliyorum (baska bir subede
+        // ayni saatte ders veriyor olmasi bu subeyi etkilememeli).
+        $izinliHucreler = [];
+
+        foreach ($kayitlar->pluck('teacher')->filter()->unique('id') as $hocaAday) {
+            foreach ($this->izinServisi->haftaninIzinleri($hocaAday, $haftaBasi) as $weekday => $slotlar) {
+                foreach ($slotlar as $slotNo => $izin) {
+                    $buHucre = $kayitlar->first(
+                        fn ($k) => $k->weekday === $weekday && $k->slot_no === $slotNo && $k->teacher_id === $hocaAday->id
+                    );
+
+                    if ($buHucre) {
+                        $izinliHucreler[$weekday][$slotNo] = $izin;
+                    }
+                }
+            }
+        }
 
         $izgara = [];
 
@@ -56,6 +86,8 @@ class CizelgeServisi
                 'alt' => $k->teacher
                     ? $k->teacher->first_name . ' ' . $k->teacher->last_name
                     : '?',
+                'izinli' => isset($izinliHucreler[$k->weekday][$k->slot_no]),
+                'izinSebep' => $izinliHucreler[$k->weekday][$k->slot_no]['sebep'] ?? null,
             ];
         }
 
@@ -70,14 +102,22 @@ class CizelgeServisi
 
     /**
      * Bir ogretmenin haftalik programi. Sartname 5.2
+     *
+     * Onayli izinle cakisan hucreler isaretlenir (sartname 2.7.3).
      */
-    public function ogretmenCizelgesi(Teacher $ogretmen): array
+    public function ogretmenCizelgesi(Teacher $ogretmen, ?Carbon $haftaBasi = null): array
     {
-        $okul = School::with('days')->first();
+        $okul = School::aktif()?->load('days');
+        $haftaBasi = $haftaBasi ?? Carbon::now()->startOfWeek(Carbon::MONDAY);
 
         $kayitlar = ScheduleEntry::with(['course', 'section', 'room'])
             ->where('teacher_id', $ogretmen->id)
             ->get();
+
+        // haftaninIzinleri zaten sadece BU ogretmenin dersleriyle
+        // cakisan hucreleri donduruyor (kendi ic sorgusu teacher_id'ye
+        // gore filtreli) - ek bir eslestirmeye gerek yok.
+        $izinliHucreler = $this->izinServisi->haftaninIzinleri($ogretmen, $haftaBasi);
 
         $izgara = [];
 
@@ -85,6 +125,8 @@ class CizelgeServisi
             $izgara[$k->weekday][$k->slot_no] = [
                 'ust' => $k->course->name ?? '?',
                 'alt' => ($k->section->name ?? '?') . ' · ' . ($k->room->name ?? '?'),
+                'izinli' => isset($izinliHucreler[$k->weekday][$k->slot_no]),
+                'izinSebep' => $izinliHucreler[$k->weekday][$k->slot_no]['sebep'] ?? null,
             ];
         }
 
@@ -186,7 +228,7 @@ class CizelgeServisi
             return ['gunler' => [], 'slotlar' => [], 'saatler' => [], 'izgara' => []];
         }
 
-        $aktifGunler = SchoolDay::where('is_active', true)
+        $aktifGunler = SchoolDay::where('school_id', $okul->id)->where('is_active', true)
             ->orderBy('weekday')
             ->pluck('weekday')
             ->all();

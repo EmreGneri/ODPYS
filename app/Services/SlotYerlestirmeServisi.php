@@ -44,7 +44,7 @@ class SlotYerlestirmeServisi
             return $this->bosRapor('Okul tanımlı değil.');
         }
 
-        $gunler = SchoolDay::where('is_active', true)
+        $gunler = SchoolDay::where('school_id', $okul->id)->where('is_active', true)
             ->orderBy('weekday')
             ->pluck('weekday')
             ->all();

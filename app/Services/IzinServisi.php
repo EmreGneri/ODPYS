@@ -46,7 +46,7 @@ class IzinServisi
      */
     public function etkilenenDersler(LeaveRequest $izin): array
     {
-        $okul = School::with('days')->first();
+        $okul = School::aktif()?->load('days');
 
         if (! $okul) {
             return [];
@@ -127,7 +127,7 @@ class IzinServisi
      */
     public function haftaninIzinleri(Teacher $ogretmen, Carbon $haftaBasi): array
     {
-        $okul = School::with('days')->first();
+        $okul = School::aktif()?->load('days');
 
         if (! $okul) {
             return [];
