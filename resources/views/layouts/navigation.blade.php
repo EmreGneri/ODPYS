@@ -55,6 +55,10 @@
                         Çizelge
                     </x-nav-link>
 
+                    <x-nav-link :href="route('ucretler.index')" :active="request()->routeIs('ucretler.*')">
+                        Ücretler
+                    </x-nav-link>
+
                     <x-nav-link :href="route('izinler.index')" :active="request()->routeIs('izinler.*')">
                         İzin Talepleri
                     </x-nav-link>
@@ -236,6 +240,14 @@
                 :active="request()->routeIs('cizelge.*')">
 
                 Çizelge
+
+            </x-responsive-nav-link>
+
+            <x-responsive-nav-link
+                :href="route('ucretler.index')"
+                :active="request()->routeIs('ucretler.*')">
+
+                Ücretler
 
             </x-responsive-nav-link>
 

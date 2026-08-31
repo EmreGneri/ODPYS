@@ -12,6 +12,7 @@ use App\Http\Controllers\RoomController;
 use App\Http\Controllers\SchoolController;
 use App\Http\Controllers\SectionController;
 use App\Http\Controllers\TeacherController;
+use App\Http\Controllers\UcretController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -92,6 +93,9 @@ Route::middleware(['auth', 'admin', 'aktifokul'])->group(function () {
     Route::get('/cizelge/yuk', [CizelgeController::class, 'yuk'])->name('cizelge.yuk');
     Route::get('/cizelge/sube/{sube}', [CizelgeController::class, 'sube'])->name('cizelge.sube');
     Route::get('/cizelge/ogretmen/{ogretmen}', [CizelgeController::class, 'ogretmen'])->name('cizelge.ogretmen');
+
+    // Sartname 2.2.4 - aylik ucret raporu
+    Route::get('/ucretler', [UcretController::class, 'index'])->name('ucretler.index');
 
     // Sartname 2.7.2 — izin onay ekrani
     Route::get('/izinler', [IzinController::class, 'yonetimIndex'])->name('izinler.index');
