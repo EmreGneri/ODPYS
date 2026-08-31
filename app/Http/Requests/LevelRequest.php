@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\School;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -26,9 +27,12 @@ class LevelRequest extends FormRequest
                 'min:9',
                 'max:12',
                 // Rule::unique()->ignore() null'i dogru isliyor.
-                // Metin birlestirme kullansaydim eklemede bos string
-                // uretir, PostgreSQL "id <> ''" karsilastirmasini reddederdi.
-                Rule::unique('levels', 'grade_number')->ignore($seviyeId),
+                // where('school_id', ...) coklu okulda gerekli: iki
+                // okul da kendi "9. Sinif"ina sahip olabilmeli, benzersizlik
+                // sadece AYNI okul icinde aranmali.
+                Rule::unique('levels', 'grade_number')
+                    ->where('school_id', School::aktif()?->id)
+                    ->ignore($seviyeId),
             ],
         ];
     }

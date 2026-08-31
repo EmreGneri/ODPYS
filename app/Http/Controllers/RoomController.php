@@ -23,7 +23,7 @@ class RoomController extends Controller
 
     public function store(RoomRequest $request)
     {
-        School::first()->rooms()->create($request->validated());
+        School::aktif()->rooms()->create($request->validated());
 
         return redirect()
             ->route('derslikler.index')

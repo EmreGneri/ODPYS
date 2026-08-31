@@ -73,7 +73,7 @@ class TeacherController extends Controller
             $validated['cv_path'] = $request->file('cv')->store('teachers/cv', 'public');
         }
 
-        School::first()->teachers()->create($validated);
+        School::aktif()->teachers()->create($validated);
 
         return redirect()
             ->route('ogretmenler.index')
@@ -197,7 +197,7 @@ class TeacherController extends Controller
      */
     private function haftalikKapasite(): int
     {
-        $okul = School::first();
+        $okul = School::aktif();
 
         // Hesap School modelinde; ders saati doğrulaması ve program
         // sihirbazı da aynı metodu kullanıyor, formül tek yerde duruyor.

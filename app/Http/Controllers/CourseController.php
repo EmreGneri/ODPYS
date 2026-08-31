@@ -30,7 +30,7 @@ class CourseController extends Controller
 
     public function store(CourseRequest $request, DersServisi $servis)
     {
-        $servis->olustur(School::first(), $request->validated());
+        $servis->olustur(School::aktif(), $request->validated());
 
         return redirect()
             ->route('dersler.index')

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Scopes\OkulScope;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -13,6 +14,14 @@ class Level extends Model
         'name',
         'grade_number',
     ];
+
+    /**
+     * Coklu okul: her sorgu otomatik aktif okula filtreleniyor.
+     */
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new OkulScope);
+    }
 
     public function school(): BelongsTo
     {

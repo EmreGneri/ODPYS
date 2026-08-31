@@ -24,7 +24,7 @@ class DashboardController extends Controller
             return redirect()->route('ogretmen.panel');
         }
 
-        $okul = School::first();
+        $okul = School::aktif();
 
         return view('dashboard', [
             'okul' => $okul,

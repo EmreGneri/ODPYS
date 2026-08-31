@@ -26,7 +26,7 @@ class LevelController extends Controller
     {
         $validated = $request->validated();
 
-        School::first()->levels()->create([
+        School::aktif()->levels()->create([
             'name' => $validated['grade_number'] . '. Sınıf',
             'grade_number' => $validated['grade_number'],
         ]);

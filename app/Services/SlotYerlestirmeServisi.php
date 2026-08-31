@@ -38,7 +38,7 @@ class SlotYerlestirmeServisi
 
         // ───── 1. Veriyi belleğe al ─────────────────────────────
 
-        $okul = School::first();
+        $okul = School::aktif();
 
         if (! $okul) {
             return $this->bosRapor('Okul tanımlı değil.');

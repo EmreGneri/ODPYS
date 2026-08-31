@@ -19,7 +19,7 @@ Route::get('/', function () {
 });
 
 Route::get('/dashboard', [DashboardController::class, 'index'])
-    ->middleware(['auth', 'verified'])
+    ->middleware(['auth', 'verified', 'aktifokul'])
     ->name('dashboard');
 
 // Giriş yapmış herkes
@@ -32,7 +32,9 @@ Route::middleware('auth')->group(function () {
 // Sadece öğretmen — sartname 2.7.4: yalnizca izin alma ve kendi
 // bilgilerine erisim. EnsureUserIsTeacher hem role='teacher' hem
 // teachers kaydina bagli olma sartlarinin ikisini birden ariyor.
-Route::middleware(['auth', 'teacher'])->prefix('ogretmen')->name('ogretmen.')->group(function () {
+// aktifokul: bu sube/ders/ogretmen sorgulari coklu okulda dogru
+// okula filtrelensin diye.
+Route::middleware(['auth', 'teacher', 'aktifokul'])->prefix('ogretmen')->name('ogretmen.')->group(function () {
     Route::get('/panel', [OgretmenPanelController::class, 'index'])->name('panel');
 
     Route::get('/izinler', [IzinController::class, 'index'])->name('izinler.index');
@@ -41,10 +43,16 @@ Route::middleware(['auth', 'teacher'])->prefix('ogretmen')->name('ogretmen.')->g
 });
 
 // Sadece yönetici
-Route::middleware(['auth', 'admin'])->group(function () {
+Route::middleware(['auth', 'admin', 'aktifokul'])->group(function () {
     Route::get('/okul', [SchoolController::class, 'index'])->name('okul.index');
     Route::get('/okul/duzenle', [SchoolController::class, 'edit'])->name('okul.edit');
     Route::put('/okul', [SchoolController::class, 'update'])->name('okul.update');
+
+    // Sartname 2.1.7 — birden fazla okul eklenebilmeli
+    Route::get('/okullar', [SchoolController::class, 'okullar'])->name('okullar.index');
+    Route::get('/okullar/ekle', [SchoolController::class, 'okulEkleForm'])->name('okullar.create');
+    Route::post('/okullar', [SchoolController::class, 'okulEkle'])->name('okullar.store');
+    Route::post('/okullar/{okul}/aktif-yap', [SchoolController::class, 'aktifYap'])->name('okullar.aktif');
 
     Route::resource('seviyeler', LevelController::class)
         ->parameters(['seviyeler' => 'seviye'])

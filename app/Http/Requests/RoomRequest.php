@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\School;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -21,7 +22,11 @@ class RoomRequest extends FormRequest
                 'required',
                 'string',
                 'max:255',
-                Rule::unique('rooms', 'name')->ignore($derslikId),
+                // where('school_id', ...): iki okul da kendi "D-101"ine
+                // sahip olabilmeli, benzersizlik okul icinde aranmali.
+                Rule::unique('rooms', 'name')
+                    ->where('school_id', School::aktif()?->id)
+                    ->ignore($derslikId),
             ],
         ];
     }

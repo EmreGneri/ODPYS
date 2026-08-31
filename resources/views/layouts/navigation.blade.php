@@ -23,6 +23,10 @@
                         Okul Ayarları
                     </x-nav-link>
 
+                    <x-nav-link :href="route('okullar.index')" :active="request()->routeIs('okullar.*')">
+                        Okullar
+                    </x-nav-link>
+
                     <x-nav-link :href="route('seviyeler.index')" :active="request()->routeIs('seviyeler.*')">
                         Seviyeler
                     </x-nav-link>
@@ -168,6 +172,14 @@
                 :active="request()->routeIs('okul.*')">
 
                 Okul Ayarları
+
+            </x-responsive-nav-link>
+
+            <x-responsive-nav-link
+                :href="route('okullar.index')"
+                :active="request()->routeIs('okullar.*')">
+
+                Okullar
 
             </x-responsive-nav-link>
 

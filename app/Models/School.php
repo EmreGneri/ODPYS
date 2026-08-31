@@ -18,6 +18,35 @@ class School extends Model
     ];
 
     /**
+     * Su an secili olan okul. Coklu okul mimarisinin merkezi.
+     *
+     * Onceki tek-okul kodunda her yerde School::first() vardi. Bunun
+     * yerine artik bu metot cagiriliyor - oturumda tutulan aktif okul
+     * id'sini okuyor, gecersizse (silinmis, hic secilmemis) ilk okula
+     * dusup oturuma yaziyor.
+     *
+     * Level/Room/Course/Teacher modellerindeki OkulScope de ayni
+     * session anahtarini okuyor - o yuzden bu metodu cagirmak (ya da
+     * EnsureAktifOkul middleware'inin cagirmasi) o modellerin dogru
+     * filtrelenmesi icin sart.
+     */
+    public static function aktif(): ?self
+    {
+        $id = session('aktif_okul_id');
+        $okul = $id ? static::find($id) : null;
+
+        if (! $okul) {
+            $okul = static::orderBy('id')->first();
+
+            if ($okul) {
+                session(['aktif_okul_id' => $okul->id]);
+            }
+        }
+
+        return $okul;
+    }
+
+    /**
      * Eğitim verilen gün sayısı.
      */
     public function aktifGunSayisi(): int

@@ -29,7 +29,7 @@ class CourseRequest extends FormRequest
                 'required',
                 'string',
                 'max:255',
-                Rule::unique('courses', 'name')->ignore($dersId),
+                Rule::unique('courses', 'name')->where('school_id', School::aktif()?->id)->ignore($dersId),
             ],
             'hourly_rate' => 'required|numeric|min:0|max:999999',
             'seviyeler' => 'nullable|array',
@@ -58,7 +58,7 @@ class CourseRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator) {
-            $okul = School::first();
+            $okul = School::aktif();
 
             if (! $okul) {
                 return;
