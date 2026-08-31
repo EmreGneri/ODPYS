@@ -33,7 +33,7 @@ class DashboardController extends Controller
             'derslikSayisi' => Room::count(),
             'dersSayisi' => Course::count(),
             'ogretmenSayisi' => Teacher::where('is_active', true)->count(),
-            'programKayitSayisi' => ScheduleEntry::count(),
+            'programKayitSayisi' => ScheduleEntry::whereHas('section')->count(),
         ]);
     }
 }

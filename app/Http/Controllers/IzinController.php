@@ -67,7 +67,7 @@ class IzinController extends Controller
      */
     public function yonetimIndex()
     {
-        $izinler = LeaveRequest::with('teacher')
+        $izinler = LeaveRequest::whereHas('teacher')->with('teacher')
             ->orderByRaw("CASE WHEN status = 'pending' THEN 0 ELSE 1 END")
             ->orderByDesc('starts_at')
             ->get();

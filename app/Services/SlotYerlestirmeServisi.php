@@ -198,7 +198,11 @@ class SlotYerlestirmeServisi
 
         DB::transaction(function () use ($satirlar) {
             // Tekrarlı sihirbaz (2.6.2/5): önce eskisini temizle
-            ScheduleEntry::query()->delete();
+            // whereHas('section'): Section modeli SubeOkulScope tasidigi
+            // icin bu, sadece AKTIF OKULUN program kayitlarini siler.
+            // Bilerek eklendi - filtre olmadan sihirbaz her calistiginda
+            // TUM okullarin programini siliyordu (kritik veri kaybi).
+            ScheduleEntry::whereHas('section')->delete();
 
             foreach (array_chunk($satirlar, 500) as $parca) {
                 ScheduleEntry::insert($parca);

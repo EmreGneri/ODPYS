@@ -102,14 +102,14 @@ class CizelgeServisi
     public function yukDagilimi(): array
     {
         // Her schedule_entries satiri bir ders saati; saymak yeterli.
-        $saatler = ScheduleEntry::query()
+        $saatler = ScheduleEntry::whereHas('teacher')
             ->selectRaw('teacher_id, COUNT(*) AS saat')
             ->groupBy('teacher_id')
             ->pluck('saat', 'teacher_id');
 
         $dersAdlari = Course::pluck('name', 'id');
 
-        $branslar = TeacherCourseLevel::query()
+        $branslar = TeacherCourseLevel::whereHas('teacher')
             ->select('teacher_id', 'course_id')
             ->distinct()
             ->get()

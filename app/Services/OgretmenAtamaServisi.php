@@ -113,7 +113,7 @@ class OgretmenAtamaServisi
 
         DB::transaction(function () use ($atamalar) {
             // Tekrarlı sihirbaz (2.6.2/5): önce eskisini temizle
-            SectionCourseTeacher::query()->delete();
+            SectionCourseTeacher::whereHas('section')->delete();
 
             foreach (array_chunk($atamalar, 500) as $parca) {
                 SectionCourseTeacher::insert($parca);

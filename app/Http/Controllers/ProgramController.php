@@ -13,8 +13,8 @@ class ProgramController extends Controller
     public function index()
     {
         return view('program.index', [
-            'atamaSayisi' => SectionCourseTeacher::count(),
-            'programSayisi' => ScheduleEntry::count(),
+            'atamaSayisi' => SectionCourseTeacher::whereHas('section')->count(),
+            'programSayisi' => ScheduleEntry::whereHas('section')->count(),
 
             // Ön kontrol: dersliksiz şubenin programı üretilemez,
             // çünkü schedule_entries.room_id NOT NULL.

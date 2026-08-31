@@ -19,7 +19,7 @@ class CizelgeController extends Controller
     public function index(CizelgeServisi $servis)
     {
         return view('cizelge.index', [
-            'programSayisi' => ScheduleEntry::count(),
+            'programSayisi' => ScheduleEntry::whereHas('section')->count(),
             'subeler' => $this->subeler(),
             'ogretmenler' => $this->ogretmenler(),
             'cakismalar' => $servis->cakismaKontrolu(),
