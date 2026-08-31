@@ -210,8 +210,9 @@ class TeacherController extends Controller
     {
         $okul = School::first();
 
-        return $okul->lessons_per_day
-            * $okul->days()->where('is_active', true)->count();
+        // Hesap School modelinde; ders saati dogrulamasi ve program
+        // sihirbazi da ayni metodu kullaniyor, formul tek yerde duruyor.
+        return $okul ? $okul->haftalikKapasite() : 0;
     }
 
     /**

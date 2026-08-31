@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\RoomRequest;
 use App\Models\Room;
+use App\Models\ScheduleEntry;
 use App\Models\School;
-use Illuminate\Http\Request;
 
 class RoomController extends Controller
 {
@@ -20,14 +21,9 @@ class RoomController extends Controller
         return view('rooms.create');
     }
 
-    public function store(Request $request)
+    public function store(RoomRequest $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:rooms,name',
-        ]);
-
-        $okul = School::first();
-        $okul->rooms()->create($validated);
+        School::first()->rooms()->create($request->validated());
 
         return redirect()
             ->route('derslikler.index')
@@ -39,13 +35,9 @@ class RoomController extends Controller
         return view('rooms.edit', ['derslik' => $derslik]);
     }
 
-    public function update(Request $request, Room $derslik)
+    public function update(RoomRequest $request, Room $derslik)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:rooms,name,' . $derslik->id,
-        ]);
-
-        $derslik->update($validated);
+        $derslik->update($request->validated());
 
         return redirect()
             ->route('derslikler.index')
@@ -54,6 +46,18 @@ class RoomController extends Controller
 
     public function destroy(Room $derslik)
     {
+        // sections.room_id nullOnDelete: sube dersliksiz kalir, silinmez.
+        // Ama schedule_entries.room_id CASCADE — uretilmis program
+        // satirlari sessizce ucar. Program bos oldugu surece bu kontrol
+        // hicbir seyi engellemiyor, faz 2 sonrasi devreye girecek.
+        $programdaVar = ScheduleEntry::where('room_id', $derslik->id)->exists();
+
+        if ($programdaVar) {
+            return redirect()
+                ->route('derslikler.index')
+                ->with('error', "{$derslik->name} silinemez: üretilmiş programda kullanılıyor. Önce programı sıfırlayın.");
+        }
+
         $derslik->delete();
 
         return redirect()

@@ -2,9 +2,10 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Carbon\Carbon;
+
 class School extends Model
 {
     protected $fillable = [
@@ -16,7 +17,36 @@ class School extends Model
         'break_duration',
     ];
 
-        public function slotSaatleri(int $weekday): array
+    /**
+     * Eğitim verilen gün sayısı.
+     */
+    public function aktifGunSayisi(): int
+    {
+        // İlişki koleksiyonu üzerinden: bir kez yükleniyor,
+        // tekrar çağrılarda yeniden sorgu atılmıyor.
+        return $this->days->where('is_active', true)->count();
+    }
+
+    /**
+     * Bir şubenin (ve bir öğretmenin) haftada girebileceği azami ders saati.
+     *
+     * Üç yerde kullanılıyor: öğretmen max_weekly_hours üst sınırı,
+     * ders saati doğrulaması, program sihirbazının slot sayısı.
+     * Sabit yazılmıyor — okul ayarı değişince hepsi birlikte değişsin diye.
+     */
+    public function haftalikKapasite(): int
+    {
+        return $this->lessons_per_day * $this->aktifGunSayisi();
+    }
+
+    /**
+     * Bir günün slot numaralarını gerçek saatlere çevirir.
+     * Şartname 2.1.8 — ders saatleri programı.
+     *
+     * Saatler veritabanında saklanmıyor; ders süresi değişince
+     * bütün program kendiliğinden kaysın diye buradan hesaplanıyor.
+     */
+    public function slotSaatleri(int $weekday): array
     {
         $gun = $this->days->firstWhere('weekday', $weekday);
 
@@ -39,7 +69,7 @@ class School extends Model
         }
 
         return $saatler;
-    }    
+    }
 
     public function days(): HasMany
     {

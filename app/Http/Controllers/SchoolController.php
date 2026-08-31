@@ -1,30 +1,34 @@
 <?php
 
 namespace App\Http\Controllers;
-use App\Models\School;
-use Illuminate\Http\Request;
 
+use App\Http\Requests\SchoolRequest;
+use App\Models\School;
+use App\Services\OkulAyarServisi;
 
 class SchoolController extends Controller
 {
-        public function index()
+    /**
+     * Haftanin gunleri. Sabit veri oldugu icin tek yerde tutuluyor.
+     */
+    private const GUN_ADLARI = [
+        1 => 'Pazartesi',
+        2 => 'Salı',
+        3 => 'Çarşamba',
+        4 => 'Perşembe',
+        5 => 'Cuma',
+        6 => 'Cumartesi',
+        7 => 'Pazar',
+    ];
+
+    public function index()
     {
         $okul = School::with('days')->first();
-
-        $gunAdlari = [
-            1 => 'Pazartesi',
-            2 => 'Salı',
-            3 => 'Çarşamba',
-            4 => 'Perşembe',
-            5 => 'Cuma',
-            6 => 'Cumartesi',
-            7 => 'Pazar',
-        ];
 
         $aktifGunler = [];
         $dersSaatleri = [];
 
-        foreach ($gunAdlari as $no => $ad) {
+        foreach (self::GUN_ADLARI as $no => $ad) {
             $gun = $okul->days->firstWhere('weekday', $no);
 
             if ($gun && $gun->is_active) {
@@ -35,28 +39,20 @@ class SchoolController extends Controller
 
         return view('schools.index', [
             'okul' => $okul,
-            'gunAdlari' => $gunAdlari,
+            'gunAdlari' => self::GUN_ADLARI,
             'aktifGunler' => $aktifGunler,
             'dersSaatleri' => $dersSaatleri,
+            'haftalikKapasite' => $okul->haftalikKapasite(),
         ]);
     }
-        public function edit()
+
+    public function edit()
     {
         $okul = School::with('days')->first();
 
-        $gunAdlari = [
-            1 => 'Pazartesi',
-            2 => 'Salı',
-            3 => 'Çarşamba',
-            4 => 'Perşembe',
-            5 => 'Cuma',
-            6 => 'Cumartesi',
-            7 => 'Pazar',
-        ];
-
         $gunVerileri = [];
 
-        foreach ($gunAdlari as $no => $ad) {
+        foreach (self::GUN_ADLARI as $no => $ad) {
             $gun = $okul->days->firstWhere('weekday', $no);
 
             $gunVerileri[$no] = [
@@ -72,33 +68,9 @@ class SchoolController extends Controller
         ]);
     }
 
-    public function update(Request $request)
+    public function update(SchoolRequest $request, OkulAyarServisi $servis)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'city' => 'required|string|max:255',
-            'district' => 'required|string|max:255',
-            'lessons_per_day' => 'required|integer|min:1|max:20',
-            'lesson_duration' => 'required|integer|min:5|max:120',
-            'break_duration' => 'required|integer|min:0|max:60',
-            'days' => 'required|array',
-            'days.*.is_active' => 'nullable|boolean',
-            'days.*.start_time' => 'required|date_format:H:i',
-        ]);
-
-        $okul = School::first();
-
-        $okul->update($validated);
-
-        foreach ($validated['days'] as $gunNo => $gunVerisi) {
-            $okul->days()->updateOrCreate(
-                ['weekday' => $gunNo],
-                [
-                    'start_time' => $gunVerisi['start_time'],
-                    'is_active' => isset($gunVerisi['is_active']),
-                ]
-            );
-        }
+        $servis->guncelle(School::first(), $request->validated());
 
         return redirect()
             ->route('okul.index')

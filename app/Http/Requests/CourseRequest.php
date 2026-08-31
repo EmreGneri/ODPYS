@@ -64,8 +64,7 @@ class CourseRequest extends FormRequest
                 return;
             }
 
-            $kapasite = $okul->lessons_per_day
-                * $okul->days()->where('is_active', true)->count();
+            $kapasite = $okul->haftalikKapasite();
 
             $dersId = $this->route('ders')?->id;
 

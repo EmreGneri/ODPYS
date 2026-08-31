@@ -2,15 +2,22 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\SectionRequest;
 use App\Models\Level;
 use App\Models\Room;
+use App\Models\ScheduleEntry;
 use App\Models\Section;
-use Illuminate\Http\Request;
+use App\Models\SectionCourseTeacher;
 
 class SectionController extends Controller
 {
     public function index()
     {
+        // with()  -> ilgili veriyi toplu cekiyor, N+1 onleniyor (3 sorgu)
+        // join()  -> levels.grade_number'a gore siralayabilmek icin
+        // select()-> join sonrasi id/name sutunlari cakisiyor; olmasaydi
+        //            sube adi yerine seviye adi gorunur, Duzenle
+        //            baglantilari yanlis kayda giderdi
         $subeler = Section::with(['level', 'room'])
             ->join('levels', 'sections.level_id', '=', 'levels.id')
             ->orderBy('levels.grade_number')
@@ -29,15 +36,9 @@ class SectionController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store(SectionRequest $request)
     {
-        $validated = $request->validate([
-            'level_id' => 'required|exists:levels,id',
-            'name' => 'required|string|max:10',
-            'room_id' => 'nullable|exists:rooms,id|unique:sections,room_id',
-        ]);
-
-        Section::create($validated);
+        Section::create($request->validated());
 
         return redirect()
             ->route('subeler.index')
@@ -49,21 +50,20 @@ class SectionController extends Controller
         return view('sections.edit', [
             'sube' => $sube,
             'seviyeler' => Level::orderBy('grade_number')->get(),
+
+            // Bos derslikler ARTI bu subenin mevcut dersligi.
+            // Ikinci kosul olmasaydi sube kendi dersligini listede
+            // goremezdi. Dis sarmalayici sart: orWhere kendi
+            // parantezinde kalsin diye.
             'derslikler' => Room::where(function ($sorgu) use ($sube) {
                 $sorgu->whereDoesntHave('section')->orWhere('id', $sube->room_id);
             })->orderBy('name')->get(),
         ]);
     }
 
-    public function update(Request $request, Section $sube)
+    public function update(SectionRequest $request, Section $sube)
     {
-        $validated = $request->validate([
-            'level_id' => 'required|exists:levels,id',
-            'name' => 'required|string|max:10',
-            'room_id' => 'nullable|exists:rooms,id|unique:sections,room_id,' . $sube->id,
-        ]);
-
-        $sube->update($validated);
+        $sube->update($request->validated());
 
         return redirect()
             ->route('subeler.index')
@@ -72,6 +72,18 @@ class SectionController extends Controller
 
     public function destroy(Section $sube)
     {
+        // Uretilmis program korunuyor: schedule_entries ve
+        // section_course_teacher CASCADE ile tanimli, sube silinince
+        // o subenin butun cizelgesi sessizce ucardi.
+        $programdaVar = ScheduleEntry::where('section_id', $sube->id)->exists()
+            || SectionCourseTeacher::where('section_id', $sube->id)->exists();
+
+        if ($programdaVar) {
+            return redirect()
+                ->route('subeler.index')
+                ->with('error', "{$sube->name} silinemez: üretilmiş programda kullanılıyor. Önce programı sıfırlayın.");
+        }
+
         $sube->delete();
 
         return redirect()

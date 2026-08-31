@@ -7,12 +7,15 @@ use App\Models\Course;
 use App\Models\CourseLevel;
 use App\Models\Level;
 use App\Models\School;
-use App\Models\TeacherCourseLevel;
+use App\Models\SectionCourseTeacher;
+use App\Services\DersServisi;
 
 class CourseController extends Controller
 {
     public function index()
     {
+        // courseLevels.level ic ice eager loading: with() olmasaydi
+        // 10 ders icin 1 + 10 + 10 = 21 sorgu olurdu, boyle 3 sorgu.
         $dersler = Course::with('courseLevels.level')->orderBy('name')->get();
 
         return view('courses.index', ['dersler' => $dersler]);
@@ -25,16 +28,9 @@ class CourseController extends Controller
         ]);
     }
 
-    public function store(CourseRequest $request)
+    public function store(CourseRequest $request, DersServisi $servis)
     {
-        $validated = $request->validated();
-
-        $ders = School::first()->courses()->create([
-            'name' => $validated['name'],
-            'hourly_rate' => $validated['hourly_rate'],
-        ]);
-
-        $this->seviyeSaatleriniKaydet($ders, $validated['seviyeler'] ?? []);
+        $servis->olustur(School::first(), $request->validated());
 
         return redirect()
             ->route('dersler.index')
@@ -51,16 +47,9 @@ class CourseController extends Controller
         ]);
     }
 
-    public function update(CourseRequest $request, Course $ders)
+    public function update(CourseRequest $request, Course $ders, DersServisi $servis)
     {
-        $validated = $request->validated();
-
-        $ders->update([
-            'name' => $validated['name'],
-            'hourly_rate' => $validated['hourly_rate'],
-        ]);
-
-        $this->seviyeSaatleriniKaydet($ders, $validated['seviyeler'] ?? []);
+        $servis->guncelle($ders, $request->validated());
 
         return redirect()
             ->route('dersler.index')
@@ -69,20 +58,16 @@ class CourseController extends Controller
 
     public function destroy(Course $ders)
     {
-        $seviyeSayisi = CourseLevel::where('course_id', $ders->id)->count();
+        // Sadece URETILMIS program korunuyor. Mufredat tanimi ve ogretmen
+        // yetkisi dersin kendi parcasi; onlari da korusaydim kullanici
+        // dersi silmek icin once seviyeleri kaldirmak zorunda kalirdi ve
+        // form en az bir seviye istedigi icin kilitlenirdi.
+        $atamaVar = SectionCourseTeacher::where('course_id', $ders->id)->exists();
 
-        if ($seviyeSayisi > 0) {
+        if ($atamaVar) {
             return redirect()
                 ->route('dersler.index')
-                ->with('error', "{$ders->name} silinemez: {$seviyeSayisi} seviyeye haftalık saat tanımlı. Önce düzenleme ekranından seviye işaretlerini kaldırın.");
-        }
-
-        $yetkiSayisi = TeacherCourseLevel::where('course_id', $ders->id)->count();
-
-        if ($yetkiSayisi > 0) {
-            return redirect()
-                ->route('dersler.index')
-                ->with('error', "{$ders->name} silinemez: {$yetkiSayisi} öğretmen yetkisi bu derse bağlı.");
+                ->with('error', "{$ders->name} silinemez: bu ders üretilmiş programda kullanılıyor. Önce programı sıfırlayın.");
         }
 
         $ders->delete();
@@ -90,25 +75,5 @@ class CourseController extends Controller
         return redirect()
             ->route('dersler.index')
             ->with('success', 'Ders silindi.');
-    }
-
-    private function seviyeSaatleriniKaydet(Course $ders, array $seviyeVerileri): void
-    {
-        foreach ($seviyeVerileri as $levelId => $veri) {
-            // isset yerine ! empty: gizli alan "0" gönderirse isset true döner
-            $secili = ! empty($veri['secili']);
-            $saat = $veri['weekly_hours'] ?? null;
-
-            if ($secili && $saat) {
-                CourseLevel::updateOrCreate(
-                    ['course_id' => $ders->id, 'level_id' => $levelId],
-                    ['weekly_hours' => $saat]
-                );
-            } else {
-                CourseLevel::where('course_id', $ders->id)
-                    ->where('level_id', $levelId)
-                    ->delete();
-            }
-        }
     }
 }
