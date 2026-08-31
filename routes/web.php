@@ -9,6 +9,7 @@ use App\Http\Controllers\SchoolController;
 use App\Http\Controllers\SectionController;
 use App\Http\Controllers\TeacherController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\CizelgeController;
 use App\Http\Controllers\ProgramController;
 
 Route::get('/', function () {
@@ -60,6 +61,15 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
     Route::get('/program', [ProgramController::class, 'index'])->name('program.index');
     Route::post('/program/atama', [ProgramController::class, 'atama'])->name('program.atama');
+
+    Route::post('/program/yerlestir', [ProgramController::class, 'yerlestir'])->name('program.yerlestir');
+
+    // Sartname 5. bolum ciktilari
+    Route::get('/cizelge', [CizelgeController::class, 'index'])->name('cizelge.index');
+    Route::get('/cizelge/yuk', [CizelgeController::class, 'yuk'])->name('cizelge.yuk');
+    Route::get('/cizelge/sube/{sube}', [CizelgeController::class, 'sube'])->name('cizelge.sube');
+    Route::get('/cizelge/ogretmen/{ogretmen}', [CizelgeController::class, 'ogretmen'])->name('cizelge.ogretmen');
+
 });
 
 require __DIR__.'/auth.php';

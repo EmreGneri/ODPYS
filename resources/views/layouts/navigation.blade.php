@@ -45,6 +45,10 @@
                         Program
                     </x-nav-link>
 
+                    <x-nav-link :href="route('cizelge.index')" :active="request()->routeIs('cizelge.*')">
+                        Çizelge
+                    </x-nav-link>
+
                 </div>
             </div>
 
@@ -193,6 +197,14 @@
                 :active="request()->routeIs('program.*')">
 
                 Program
+
+            </x-responsive-nav-link>
+
+            <x-responsive-nav-link
+                :href="route('cizelge.index')"
+                :active="request()->routeIs('cizelge.*')">
+
+                Çizelge
 
             </x-responsive-nav-link>
 
