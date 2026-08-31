@@ -9,11 +9,57 @@
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-4">
 
+            {{-- Üst satır: geri dön + toplam --}}
             <div class="flex items-center justify-between">
-                <a href="{{ $geriUrl }}" class="text-sm text-gray-600 hover:text-gray-900">&larr; Ders Programı</a>
+                <a href="{{ $geriUrl }}" class="text-sm text-gray-600 hover:text-gray-900">
+                    &larr; Ders Programı
+                </a>
                 <span class="text-sm text-gray-500">Toplam {{ $toplamSaat }} ders saati</span>
             </div>
 
+            {{-- Gezinme şeridi --}}
+            <div class="bg-white shadow-sm sm:rounded-lg p-4 space-y-3">
+
+                {{-- Önceki / Sonraki --}}
+                <div class="flex items-center justify-between gap-4">
+                    @if ($gezinme['onceki'])
+                        <a href="{{ $gezinme['onceki']['url'] }}"
+                           class="inline-flex items-center gap-1 text-sm text-gray-700 hover:text-gray-900">
+                            &larr; {{ $gezinme['onceki']['ad'] }}
+                        </a>
+                    @else
+                        <span class="text-sm text-gray-300">&larr; ilk kayıt</span>
+                    @endif
+
+                    <span class="text-xs uppercase tracking-wide text-gray-400">
+                        {{ $gezinme['baslik'] }}
+                    </span>
+
+                    @if ($gezinme['sonraki'])
+                        <a href="{{ $gezinme['sonraki']['url'] }}"
+                           class="inline-flex items-center gap-1 text-sm text-gray-700 hover:text-gray-900">
+                            {{ $gezinme['sonraki']['ad'] }} &rarr;
+                        </a>
+                    @else
+                        <span class="text-sm text-gray-300">son kayıt &rarr;</span>
+                    @endif
+                </div>
+
+                {{-- Bütün kayıtlar, yan yana. Çok sayıda olursa yatay kayar. --}}
+                <div class="flex flex-wrap gap-2 border-t pt-3">
+                    @foreach ($gezinme['ogeler'] as $oge)
+                        <a href="{{ $oge['url'] }}"
+                           class="px-3 py-1.5 rounded text-sm border whitespace-nowrap
+                                  {{ $oge['aktif']
+                                     ? 'bg-gray-800 text-white border-gray-800'
+                                     : 'border-gray-300 text-gray-700 hover:bg-gray-50' }}">
+                            {{ $oge['ad'] }}
+                        </a>
+                    @endforeach
+                </div>
+            </div>
+
+            {{-- Çizelge --}}
             @if (empty($gunler))
                 <div class="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded">
                     Aktif eğitim günü tanımlı değil.
@@ -49,7 +95,7 @@
                                                     </div>
                                                 </div>
                                             @else
-                                                <div class="text-gray-300 text-xs px-2 py-1.5">bos</div>
+                                                <div class="text-gray-300 text-xs px-2 py-1.5">boş</div>
                                             @endif
                                         </td>
                                     @endforeach
@@ -60,9 +106,9 @@
                 </div>
 
                 <p class="text-xs text-gray-500">
-                    Saatler okul ayarlarindan hesaplaniyor; veritabaninda slot numarasi saklaniyor.
-                    Ders suresi degisince butun cizelge kendiliginden kayar.
-                    Her gunun baslangic saati farkli olabilir.
+                    Saatler okul ayarlarından hesaplanıyor; veritabanında slot numarası saklanıyor.
+                    Ders süresi değişince bütün çizelge kendiliğinden kayar.
+                    Her günün başlangıç saati farklı olabilir.
                 </p>
             @endif
 

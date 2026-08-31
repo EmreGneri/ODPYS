@@ -8,8 +8,8 @@ use App\Models\School;
 use App\Models\SectionCourseTeacher;
 use App\Models\Teacher;
 use App\Models\TeacherCourseLevel;
+use App\Services\OgretmenServisi;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
@@ -136,6 +136,31 @@ class TeacherController extends Controller
     }
 
     /**
+     * Şartname 2.8 — öğretmene giriş hesabı açar.
+     *
+     * İş mantığı OgretmenServisi'nde; burada sadece sonucu
+     * HTTP cevabına çeviriyorum.
+     */
+    public function hesapAc(Teacher $ogretmen, OgretmenServisi $servis)
+    {
+        $sonuc = $servis->hesapAc($ogretmen);
+
+        if (! $sonuc['basarili']) {
+            return redirect()
+                ->route('ogretmenler.index')
+                ->with('error', $sonuc['mesaj']);
+        }
+
+        return redirect()
+            ->route('ogretmenler.index')
+            ->with('yeniHesap', [
+                'ad' => $ogretmen->full_name,
+                'eposta' => $ogretmen->email,
+                'parola' => $sonuc['parola'],
+            ]);
+    }
+
+    /**
      * Şartname 2.4 — Öğretmene ders/branş atama ekranı.
      * Atama SEVİYE BAZLI: "Ahmet Hoca → Türkçe → 9. sınıf"
      */
@@ -157,49 +182,13 @@ class TeacherController extends Controller
         ]);
     }
 
-    public function derslerKaydet(Request $request, Teacher $ogretmen)
+    public function derslerKaydet(Request $request, Teacher $ogretmen, OgretmenServisi $servis)
     {
-        // Geçerli id kümeleri — kullanıcı formu kurcalarsa uydurma
-        // id'ler yazılmasın diye. flip() ile isset() kontrolü O(1).
-        $gecerliDersler = Course::pluck('id')->flip();
-        $gecerliSeviyeler = Level::pluck('id')->flip();
-
-        $satirlar = [];
-
-        foreach ($request->input('yetkiler', []) as $dersId => $seviyeler) {
-            if (! isset($gecerliDersler[$dersId]) || ! is_array($seviyeler)) {
-                continue;
-            }
-
-            foreach (array_keys($seviyeler) as $seviyeId) {
-                if (! isset($gecerliSeviyeler[$seviyeId])) {
-                    continue;
-                }
-
-                $satirlar[] = [
-                    'teacher_id' => $ogretmen->id,
-                    'course_id' => (int) $dersId,
-                    'level_id' => (int) $seviyeId,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ];
-            }
-        }
-
-        // Sil-ve-yeniden-yaz: hangi kutunun açıldığını/kapandığını
-        // tek tek karşılaştırmaktan çok daha basit ve hatasız.
-        // İşlem içinde olduğu için yarım kalma riski yok.
-        DB::transaction(function () use ($ogretmen, $satirlar) {
-            TeacherCourseLevel::where('teacher_id', $ogretmen->id)->delete();
-
-            foreach (array_chunk($satirlar, 500) as $parca) {
-                TeacherCourseLevel::insert($parca);
-            }
-        });
+        $sayi = $servis->yetkileriKaydet($ogretmen, $request->input('yetkiler', []));
 
         return redirect()
             ->route('ogretmenler.index')
-            ->with('success', $ogretmen->full_name . ' için ' . count($satirlar) . ' ders-seviye yetkisi kaydedildi.');
+            ->with('success', $ogretmen->full_name . ' için ' . $sayi . ' ders-seviye yetkisi kaydedildi.');
     }
 
     /**
@@ -210,8 +199,8 @@ class TeacherController extends Controller
     {
         $okul = School::first();
 
-        // Hesap School modelinde; ders saati dogrulamasi ve program
-        // sihirbazi da ayni metodu kullaniyor, formul tek yerde duruyor.
+        // Hesap School modelinde; ders saati doğrulaması ve program
+        // sihirbazı da aynı metodu kullanıyor, formül tek yerde duruyor.
         return $okul ? $okul->haftalikKapasite() : 0;
     }
 

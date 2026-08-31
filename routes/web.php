@@ -53,6 +53,9 @@ Route::middleware(['auth', 'admin'])->group(function () {
         ->parameters(['ogretmenler' => 'ogretmen'])
         ->except(['show']);
 
+    Route::post('/ogretmenler/{ogretmen}/hesap', [TeacherController::class, 'hesapAc'])
+        ->name('ogretmenler.hesap');
+
     Route::get('/ogretmenler/{ogretmen}/dersler', [TeacherController::class, 'dersler'])
         ->name('ogretmenler.dersler');
 

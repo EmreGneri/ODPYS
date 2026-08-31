@@ -20,6 +20,25 @@
                 </div>
             @endif
 
+            {{-- Geçici parola yalnızca bir kez gösteriliyor: flash veri,
+                 okunduğu istekte oturumdan siliniyor. Veritabanında da
+                 sadece bcrypt özeti duruyor, düz metin hiçbir yerde yok. --}}
+            @if (session('yeniHesap'))
+                <div class="mb-4 rounded bg-blue-50 border border-blue-300 p-4 text-sm text-blue-900">
+                    <div class="font-medium mb-2">
+                        {{ session('yeniHesap')['ad'] }} için giriş hesabı oluşturuldu.
+                    </div>
+                    <div class="tabular-nums">
+                        E-posta: <strong>{{ session('yeniHesap')['eposta'] }}</strong><br>
+                        Geçici parola: <strong>{{ session('yeniHesap')['parola'] }}</strong>
+                    </div>
+                    <div class="mt-2 text-xs">
+                        Bu parola bir daha gösterilmeyecek. Öğretmene iletin;
+                        Profil ekranından değiştirebilir.
+                    </div>
+                </div>
+            @endif
+
             <div class="mb-4 flex flex-wrap items-center justify-between gap-4">
                 <form method="GET" action="{{ route('ogretmenler.index') }}" class="flex flex-wrap gap-3">
                     <input type="text" name="ara" value="{{ request('ara') }}"
@@ -58,6 +77,7 @@
                             <th class="px-6 py-3 text-left font-medium text-gray-500">Branş</th>
                             <th class="px-6 py-3 text-left font-medium text-gray-500">Azami Saat</th>
                             <th class="px-6 py-3 text-left font-medium text-gray-500">Özgeçmiş</th>
+                            <th class="px-6 py-3 text-left font-medium text-gray-500">Hesap</th>
                             <th class="px-6 py-3 text-left font-medium text-gray-500">Durum</th>
                             <th class="px-6 py-3 text-right font-medium text-gray-500">İşlemler</th>
                         </tr>
@@ -96,6 +116,7 @@
                                 </td>
 
                                 <td class="px-6 py-3">{{ $ogretmen->max_weekly_hours }}</td>
+
                                 <td class="px-6 py-3">
                                     @if ($ogretmen->cv_path)
                                         <a href="{{ Storage::url($ogretmen->cv_path) }}" target="_blank"
@@ -104,6 +125,25 @@
                                         <span class="text-gray-400">—</span>
                                     @endif
                                 </td>
+
+                                {{-- Şartname 2.8 — giriş hesabı.
+                                     Öğretmen izin talebi oluşturabilmek için (2.7.1)
+                                     önce sisteme girebilmeli. --}}
+                                <td class="px-6 py-3">
+                                    @if ($ogretmen->user_id)
+                                        <span class="inline-flex px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 text-xs">Var</span>
+                                    @else
+                                        <form action="{{ route('ogretmenler.hesap', $ogretmen) }}"
+                                              method="POST" class="inline"
+                                              onsubmit="return confirm('{{ $ogretmen->full_name }} için giriş hesabı açılsın mı? Geçici parola bir kez gösterilecek.');">
+                                            @csrf
+                                            <button type="submit" class="text-indigo-600 hover:text-indigo-900 text-xs underline">
+                                                Hesap Aç
+                                            </button>
+                                        </form>
+                                    @endif
+                                </td>
+
                                 <td class="px-6 py-3">
                                     @if ($ogretmen->is_active)
                                         <span class="inline-flex px-2 py-0.5 rounded-full bg-green-100 text-green-800 text-xs">Aktif</span>
@@ -111,6 +151,7 @@
                                         <span class="inline-flex px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-xs">Pasif</span>
                                     @endif
                                 </td>
+
                                 <td class="px-6 py-3 text-right space-x-3 whitespace-nowrap">
                                     <a href="{{ route('ogretmenler.dersler', $ogretmen) }}"
                                        class="text-indigo-600 hover:text-indigo-900">Dersler</a>
@@ -129,7 +170,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="px-6 py-8 text-center text-gray-500">
+                                <td colspan="9" class="px-6 py-8 text-center text-gray-500">
                                     @if (request('ara') || request('durum'))
                                         Aramanızla eşleşen öğretmen bulunamadı.
                                     @else

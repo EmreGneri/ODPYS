@@ -17,6 +17,8 @@
                         {{ __('Dashboard') }}
                     </x-nav-link>
 
+                    @if (auth()->user()->role === 'admin')
+
                     <x-nav-link :href="route('okul.index')" :active="request()->routeIs('okul.*')">
                         Okul Ayarları
                     </x-nav-link>
@@ -48,6 +50,8 @@
                     <x-nav-link :href="route('cizelge.index')" :active="request()->routeIs('cizelge.*')">
                         Çizelge
                     </x-nav-link>
+
+                    @endif
 
                 </div>
             </div>
@@ -142,7 +146,10 @@
 
                 {{ __('Dashboard') }}
 
+
             </x-responsive-nav-link>
+
+            @if (auth()->user()->role === 'admin')
 
             <x-responsive-nav-link
                 :href="route('okul.index')"
@@ -207,6 +214,8 @@
                 Çizelge
 
             </x-responsive-nav-link>
+
+            @endif
 
         </div>
 
