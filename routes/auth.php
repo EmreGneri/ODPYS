@@ -13,10 +13,18 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
 
-    Route::get('login', [AuthenticatedSessionController::class, 'create'])
+    // Sartname: yonetici ve ogretmen icin ayrik giris ekranlari.
+    // /login artik dogrudan form degil, "hangi giris?" secim ekrani.
+    Route::get('login', [AuthenticatedSessionController::class, 'secim'])
         ->name('login');
 
-    Route::post('login', [AuthenticatedSessionController::class, 'store']);
+    Route::get('giris/{rol}', [AuthenticatedSessionController::class, 'create'])
+        ->whereIn('rol', ['yonetici', 'ogretmen'])
+        ->name('login.form');
+
+    Route::post('giris/{rol}', [AuthenticatedSessionController::class, 'store'])
+        ->whereIn('rol', ['yonetici', 'ogretmen'])
+        ->name('login.attempt');
 
     Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
         ->name('password.request');

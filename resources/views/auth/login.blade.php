@@ -1,8 +1,10 @@
 <x-guest-layout>
+    <h2 class="text-lg font-semibold text-gray-800 mb-4">{{ $baslik }}</h2>
+
     <!-- Session Status -->
     <x-auth-session-status class="mb-4" :status="session('status')" />
 
-    <form method="POST" action="{{ route('login') }}">
+    <form method="POST" action="{{ route('login.attempt', $rol) }}">
         @csrf
 
         <!-- Email Address -->
@@ -44,4 +46,8 @@
             </x-primary-button>
         </div>
     </form>
+
+    <p class="mt-4 text-sm text-gray-600">
+        <a href="{{ route('login') }}" class="underline hover:text-gray-900">&larr; Giriş türünü değiştir</a>
+    </p>
 </x-guest-layout>
