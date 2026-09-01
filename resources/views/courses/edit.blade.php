@@ -27,6 +27,7 @@
                     data-initial-name="{{ $ders->name }}"
                     data-initial-hourly-rate="{{ $ders->hourly_rate }}"
                     data-initial-seviye-saatleri="{{ $ders->courseLevels->pluck('weekly_hours', 'level_id')->toJson() }}"
+                    data-initial-block-ders="{{ $ders->block_ders ? 'true' : 'false' }}"
                     data-csrf-token="{{ csrf_token() }}"
                 ></div>
 

@@ -13,6 +13,11 @@ class Course extends Model
         'school_id',
         'name',
         'hourly_rate',
+        'block_ders',
+    ];
+
+    protected $casts = [
+        'block_ders' => 'boolean',
     ];
 
     protected static function booted(): void

@@ -23,6 +23,7 @@ class DersServisi
             $ders = $okul->courses()->create([
                 'name' => $veri['name'],
                 'hourly_rate' => $veri['hourly_rate'],
+                'block_ders' => $veri['block_ders'] ?? false,
             ]);
 
             $this->seviyeleriYaz($ders, $veri['seviyeler'] ?? []);
@@ -37,6 +38,7 @@ class DersServisi
             $ders->update([
                 'name' => $veri['name'],
                 'hourly_rate' => $veri['hourly_rate'],
+                'block_ders' => $veri['block_ders'] ?? false,
             ]);
 
             $this->seviyeleriYaz($ders, $veri['seviyeler'] ?? []);

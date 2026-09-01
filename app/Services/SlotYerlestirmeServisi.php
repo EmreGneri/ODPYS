@@ -151,18 +151,11 @@ class SlotYerlestirmeServisi
 
             $yerlesen = 0;
 
-            for ($sira = 1; $sira <= $is['saat']; $sira++) {
-                $slot = $this->bosSlotBul(
-                    $is, $gunler, $slotSayisi,
-                    $subeDolu, $ogretmenDolu, $subeGunYuku, $dersGunu
-                );
-
-                if ($slot === null) {
-                    break;
-                }
-
-                [$gun, $slotNo] = $slot;
-
+            // Bu satiri satirlar[]'a ekleyip dolulugu isaretleyen kucuk
+            // yardimci - hem blok hem tekli yerlestirme aynisini kullaniyor.
+            $satirYaz = function (int $gun, int $slotNo) use (
+                &$satirlar, &$subeDolu, &$ogretmenDolu, &$subeGunYuku, &$dersGunu, $is, $sube
+            ) {
                 $satirlar[] = [
                     'section_id' => $is['section_id'],
                     'course_id' => $is['course_id'],
@@ -178,7 +171,40 @@ class SlotYerlestirmeServisi
                 $ogretmenDolu[$is['teacher_id']][$gun][$slotNo] = true;
                 $subeGunYuku[$is['section_id']][$gun] = ($subeGunYuku[$is['section_id']][$gun] ?? 0) + 1;
                 $dersGunu[$is['section_id']][$is['course_id']][$gun] = true;
+            };
 
+            // Sartname 4/5: blok ders (opsiyonel). Ders bunun icin
+            // isaretlenmisse ve birden fazla saati varsa, ONCE ayni gunde
+            // ardisik bir blok aramayi dene. Bulunamazsa (gunde yeterli
+            // bosluk yoksa) SESSIZCE normal tekli yerlestirmeye dus -
+            // blok bulunamamasi dersin hic yerlesmemesi anlamina gelmemeli.
+            $ders = $dersler[$is['course_id']] ?? null;
+
+            if ($ders && $ders->block_ders && $is['saat'] >= 2) {
+                $blok = $this->blokSlotBul($is, $gunler, $slotSayisi, $subeDolu, $ogretmenDolu, $subeGunYuku);
+
+                if ($blok !== null) {
+                    [$gun, $baslangicSlot] = $blok;
+
+                    for ($i = 0; $i < $is['saat']; $i++) {
+                        $satirYaz($gun, $baslangicSlot + $i);
+                        $yerlesen++;
+                    }
+                }
+            }
+
+            for ($sira = $yerlesen + 1; $sira <= $is['saat']; $sira++) {
+                $slot = $this->bosSlotBul(
+                    $is, $gunler, $slotSayisi,
+                    $subeDolu, $ogretmenDolu, $subeGunYuku, $dersGunu
+                );
+
+                if ($slot === null) {
+                    break;
+                }
+
+                [$gun, $slotNo] = $slot;
+                $satirYaz($gun, $slotNo);
                 $yerlesen++;
             }
 
@@ -295,6 +321,59 @@ class SlotYerlestirmeServisi
                 }
 
                 return [$gun, $slot];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Blok ders (sartname 4/5) icin: bir gunde, hem sube hem ogretmen
+     * icin BOS, "saat" adet ARDISIK slot arar. Bulursa [gun, baslangic
+     * slotu] doner - caller baslangictan itibaren "saat" kadar ardisik
+     * slotu yerlestirir. Bulamazsa null - caller normal tekli
+     * yerlestirmeye duser, blok bulunamamasi dersin hic islenmemesi
+     * anlamina gelmez.
+     */
+    private function blokSlotBul(
+        array $is,
+        array $gunler,
+        int $slotSayisi,
+        array $subeDolu,
+        array $ogretmenDolu,
+        array $subeGunYuku
+    ): ?array {
+        $subeId = $is['section_id'];
+        $ogretmenId = $is['teacher_id'];
+        $saat = $is['saat'];
+
+        // Gunde bu kadar slot fiziksel olarak yok - blok siga sigmaz.
+        if ($saat > $slotSayisi) {
+            return null;
+        }
+
+        $siraliGunler = $gunler;
+        usort($siraliGunler, function ($a, $b) use ($subeGunYuku, $subeId) {
+            return [$subeGunYuku[$subeId][$a] ?? 0, $a]
+               <=> [$subeGunYuku[$subeId][$b] ?? 0, $b];
+        });
+
+        foreach ($siraliGunler as $gun) {
+            for ($baslangic = 1; $baslangic <= $slotSayisi - $saat + 1; $baslangic++) {
+                $uygun = true;
+
+                for ($i = 0; $i < $saat; $i++) {
+                    $slot = $baslangic + $i;
+
+                    if (isset($subeDolu[$subeId][$gun][$slot]) || isset($ogretmenDolu[$ogretmenId][$gun][$slot])) {
+                        $uygun = false;
+                        break;
+                    }
+                }
+
+                if ($uygun) {
+                    return [$gun, $baslangic];
+                }
             }
         }
 

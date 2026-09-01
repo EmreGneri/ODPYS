@@ -40,7 +40,12 @@
                     <tbody>
                         @forelse ($dersler as $ders)
                             <tr class="border-b">
-                                <td class="py-2 align-top">{{ $ders->name }}</td>
+                                <td class="py-2 align-top">
+                                    {{ $ders->name }}
+                                    @if ($ders->block_ders)
+                                        <span class="inline-flex px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 text-xs ml-1">Blok</span>
+                                    @endif
+                                </td>
                                 <td class="py-2 align-top">{{ number_format($ders->hourly_rate, 2, ',', '.') }} TL</td>
                                 <td class="py-2 align-top">
                                     @forelse ($ders->courseLevels as $cl)

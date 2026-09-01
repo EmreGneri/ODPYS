@@ -8,11 +8,13 @@ const props = defineProps({
     initialName: { type: String, default: '' },
     initialHourlyRate: { type: [String, Number], default: '' },
     initialSeviyeSaatleri: { type: Object, default: () => ({}) },
+    initialBlockDers: { type: Boolean, default: false },
     csrfToken: String,
 });
 
 const name = ref(props.initialName);
 const hourlyRate = ref(props.initialHourlyRate);
+const blockDers = ref(props.initialBlockDers);
 const hata = ref('');
 
 const HAFTA_SAYISI = 4;
@@ -85,6 +87,18 @@ function gonder(e) {
             </label>
             <input id="hourly_rate" name="hourly_rate" type="number" step="0.01" v-model="hourlyRate"
                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm">
+        </div>
+
+        <div>
+            <label class="flex items-center gap-2">
+                <input type="checkbox" v-model="blockDers" name="block_ders" value="1"
+                       class="rounded border-gray-300">
+                <span class="text-sm font-medium text-gray-700">Blok ders</span>
+            </label>
+            <p class="text-xs text-gray-500 mt-1">
+                İşaretlenirse, sihirbaz bu dersin haftalık saatlerini mümkünse aynı günde
+                art arda (blok halinde) yerleştirmeye çalışır, haftaya yaymak yerine.
+            </p>
         </div>
 
         <div class="border-t pt-6">

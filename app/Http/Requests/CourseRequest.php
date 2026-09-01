@@ -32,6 +32,10 @@ class CourseRequest extends FormRequest
                 Rule::unique('courses', 'name')->where('school_id', School::aktif()?->id)->ignore($dersId),
             ],
             'hourly_rate' => 'required|numeric|min:0|max:999999',
+            // Sartname 4/5: blok ders (opsiyonel) - checkbox isaretlenmezse
+            // form hic alan gondermiyor, bu yuzden 'boolean' + kontrolde
+            // varsayilan false kullaniliyor (DersServisi'nde).
+            'block_ders' => 'nullable|boolean',
             'seviyeler' => 'nullable|array',
             'seviyeler.*.secili' => 'nullable|boolean',
             // max:40 kaldırıldı — üst sınır aşağıda kapasiteden hesaplanıyor
