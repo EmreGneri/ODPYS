@@ -87,12 +87,26 @@ Route::middleware(['auth', 'admin', 'aktifokul'])->group(function () {
     Route::get('/program', [ProgramController::class, 'index'])->name('program.index');
     Route::post('/program/atama', [ProgramController::class, 'atama'])->name('program.atama');
     Route::post('/program/yerlestir', [ProgramController::class, 'yerlestir'])->name('program.yerlestir');
+        // Sartname 2.6.2/5b - programi elle duzenleme
+    Route::get('/program/duzenle/{sube}/{weekday}/{slot}', [ProgramController::class, 'hucreDuzenle'])
+        ->name('program.hucre.duzenle')
+        ->whereNumber(['weekday', 'slot']);
+    Route::put('/program/duzenle/{sube}/{weekday}/{slot}', [ProgramController::class, 'hucreGuncelle'])
+        ->name('program.hucre.guncelle')
+        ->whereNumber(['weekday', 'slot']);
+    Route::delete('/program/duzenle/{sube}/{weekday}/{slot}', [ProgramController::class, 'hucreBosalt'])
+        ->name('program.hucre.bosalt')
+        ->whereNumber(['weekday', 'slot']);
 
     // Sartname 5. bolum ciktilari
     Route::get('/cizelge', [CizelgeController::class, 'index'])->name('cizelge.index');
     Route::get('/cizelge/yuk', [CizelgeController::class, 'yuk'])->name('cizelge.yuk');
     Route::get('/cizelge/sube/{sube}', [CizelgeController::class, 'sube'])->name('cizelge.sube');
     Route::get('/cizelge/ogretmen/{ogretmen}', [CizelgeController::class, 'ogretmen'])->name('cizelge.ogretmen');
+    Route::get('/cizelge/sube/{sube}/pdf', [CizelgeController::class, 'subePdf'])->name('cizelge.sube.pdf');
+    Route::get('/cizelge/sube/{sube}/excel', [CizelgeController::class, 'subeExcel'])->name('cizelge.sube.excel');
+    Route::get('/cizelge/ogretmen/{ogretmen}/pdf', [CizelgeController::class, 'ogretmenPdf'])->name('cizelge.ogretmen.pdf');
+    Route::get('/cizelge/ogretmen/{ogretmen}/excel', [CizelgeController::class, 'ogretmenExcel'])->name('cizelge.ogretmen.excel');
 
     // Sartname 2.2.4 - aylik ucret raporu
     Route::get('/ucretler', [UcretController::class, 'index'])->name('ucretler.index');

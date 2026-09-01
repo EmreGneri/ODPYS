@@ -7,6 +7,8 @@ use App\Models\Section;
 use App\Models\Teacher;
 use App\Services\CizelgeServisi;
 use Illuminate\Support\Collection;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Str;
 
 /**
  * Uretilmis programin goruntulenmesi. Sartname 5. bolum ciktilari.
@@ -31,6 +33,7 @@ class CizelgeController extends Controller
         return view('cizelge.izgara', $servis->subeCizelgesi($sube) + [
             'geriUrl' => route('cizelge.index'),
             'tur' => 'sube',
+            'subeId' => $sube->id,
             'gezinme' => $this->gezinmeKur(
                 'Şubeler',
                 $this->subeler(),
@@ -46,6 +49,7 @@ class CizelgeController extends Controller
         return view('cizelge.izgara', $servis->ogretmenCizelgesi($ogretmen) + [
             'geriUrl' => route('cizelge.index'),
             'tur' => 'ogretmen',
+            'ogretmenId' => $ogretmen->id,
             'gezinme' => $this->gezinmeKur(
                 'Öğretmenler',
                 $this->ogretmenler(),
@@ -143,5 +147,55 @@ class CizelgeController extends Controller
             'onceki' => $onceki,
             'sonraki' => $sonraki,
         ];
+    }
+
+    public function subePdf(Section $sube, CizelgeServisi $servis)
+    {
+        $veri = $servis->subeCizelgesi($sube);
+
+        return Pdf::loadView('cizelge.pdf', $veri)
+            ->download(Str::slug($veri['baslik']) . '-cizelge.pdf');
+    }
+
+    public function ogretmenPdf(Teacher $ogretmen, CizelgeServisi $servis)
+    {
+        $veri = $servis->ogretmenCizelgesi($ogretmen);
+
+        return Pdf::loadView('cizelge.pdf', $veri)
+            ->download(Str::slug($veri['baslik']) . '-cizelge.pdf');
+    }
+
+    public function subeExcel(Section $sube, CizelgeServisi $servis)
+    {
+        return $this->excelIndir($servis->subeCizelgesi($sube));
+    }
+
+    public function ogretmenExcel(Teacher $ogretmen, CizelgeServisi $servis)
+    {
+        return $this->excelIndir($servis->ogretmenCizelgesi($ogretmen));
+    }
+
+    /**
+     * Cizelgeyi Excel'de acilan bir dosya olarak indirir. Gercek .xlsx
+     * degil - Excel, HTML tablosunu ".xls" uzantisiyla ve dogru
+     * Content-Type ile gonderilince kendi formatina ceviriyor. Boylece
+     * kutuphane eklemeden (maatwebsite/excel gibi) hem sutun genislikleri
+     * hem Turkce karakterler dogru goruntuleniyor - duz CSV'de sutun
+     * genisligi bilgisi hic tasinamiyordu, her acilista elle ayarlamak
+     * gerekiyordu.
+     *
+     * pdf.blade.php'yi tekrar kullaniyoruz - zaten temiz, basit bir HTML
+     * tablosu, Excel'in eski HTML-okuyucusu boyle bir yapiyi sorunsuz
+     * yorumluyor.
+     */
+    private function excelIndir(array $veri): \Illuminate\Http\Response
+    {
+        $html = "\xEF\xBB\xBF" . view('cizelge.pdf', $veri)->render();
+        $dosyaAdi = Str::slug($veri['baslik']) . '-cizelge.xls';
+
+        return response($html, 200, [
+            'Content-Type' => 'application/vnd.ms-excel; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="' . $dosyaAdi . '"',
+        ]);
     }
 }

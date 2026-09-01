@@ -14,7 +14,16 @@
                 <a href="{{ $geriUrl }}" class="text-sm text-gray-600 hover:text-gray-900">
                     &larr; Ders Programı
                 </a>
-                <span class="text-sm text-gray-500">Toplam {{ $toplamSaat }} ders saati</span>
+                <div class="flex items-center gap-4">
+                    <span class="text-sm text-gray-500">Toplam {{ $toplamSaat }} ders saati</span>
+                    @if ($tur === 'sube')
+                        <a href="{{ route('cizelge.sube.pdf', $subeId) }}" class="text-sm text-indigo-600 hover:text-indigo-900">PDF indir</a>
+                        <a href="{{ route('cizelge.sube.excel', $subeId) }}" class="text-sm text-indigo-600 hover:text-indigo-900">Excel indir</a>
+                    @else
+                        <a href="{{ route('cizelge.ogretmen.pdf', $ogretmenId) }}" class="text-sm text-indigo-600 hover:text-indigo-900">PDF indir</a>
+                        <a href="{{ route('cizelge.ogretmen.excel', $ogretmenId) }}" class="text-sm text-indigo-600 hover:text-indigo-900">Excel indir</a>
+                    @endif
+                </div>
             </div>
 
             {{-- Gezinme şeridi --}}
@@ -108,9 +117,23 @@
                                                     <div class="text-xs text-gray-400 tabular-nums mt-0.5">
                                                         {{ $saatler[$gunNo][$slot]['baslangic'] ?? '' }}-{{ $saatler[$gunNo][$slot]['bitis'] ?? '' }}
                                                     </div>
+                                                    @if ($tur === 'sube')
+                                                        <a href="{{ route('program.hucre.duzenle', [$subeId, $gunNo, $slot]) }}"
+                                                           class="text-xs text-indigo-600 hover:text-indigo-900 mt-1 inline-block">
+                                                            Düzenle
+                                                        </a>
+                                                    @endif
                                                 </div>
                                             @else
-                                                <div class="text-gray-300 text-xs px-2 py-1.5">boş</div>
+                                                <div class="text-gray-300 text-xs px-2 py-1.5">
+                                                    boş
+                                                    @if ($tur === 'sube')
+                                                        <a href="{{ route('program.hucre.duzenle', [$subeId, $gunNo, $slot]) }}"
+                                                           class="block text-indigo-600 hover:text-indigo-900 mt-1">
+                                                            + Ders Ekle
+                                                        </a>
+                                                    @endif
+                                                </div>
                                             @endif
                                         </td>
                                     @endforeach
