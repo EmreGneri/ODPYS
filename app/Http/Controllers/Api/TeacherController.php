@@ -135,6 +135,9 @@ class TeacherController extends Controller
             ->all();
 
         return [
+            // Ekran artik ogretmenler arasinda gezinebiliyor; kimin
+            // yetkilerini duzenledigi basligta yazsin diye.
+            'ogretmen' => ['id' => $ogretmen->id, 'ad' => $ogretmen->full_name],
             'dersler' => Course::orderBy('name')->get(),
             'seviyeler' => Level::orderBy('grade_number')->get(),
             'mevcut' => $mevcut,

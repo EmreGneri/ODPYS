@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CizelgeController as ApiCizelgeController;
 use App\Http\Controllers\Api\CourseController as ApiCourseController;
 use App\Http\Controllers\Api\DashboardController as ApiDashboardController;
+use App\Http\Controllers\Api\GezinmeController as ApiGezinmeController;
 use App\Http\Controllers\Api\IzinController as ApiIzinController;
 use App\Http\Controllers\Api\LevelController as ApiLevelController;
 use App\Http\Controllers\Api\OgretmenPanelController as ApiOgretmenPanelController;
@@ -60,6 +61,10 @@ Route::middleware(['auth:sanctum', 'aktifokul'])->group(function () {
     // ───── YÖNETİCİ TARAFI ─────
     Route::middleware('admin')->group(function () {
         Route::get('/dashboard', [ApiDashboardController::class, 'index']);
+
+        // Detay ekranlarindaki "onceki/sonraki kayit" cubugu icin sade
+        // listeler (sadece id + etiket). Ayrintili gerekce: controller.
+        Route::get('/gezinme', [ApiGezinmeController::class, 'index']);
 
         // Cizelge ciktilari - sartname 5. bolum
         Route::get('/cizelge', [ApiCizelgeController::class, 'index']);
