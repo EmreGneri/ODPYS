@@ -18,6 +18,33 @@ const form = ref({});
 const fotografDosya = ref(null);
 const cvDosya = ref(null);
 
+// Duzenlemede sunucuda halihazirda kayitli olan dosyalar
+const mevcutFotografUrl = ref(null);
+const mevcutCvUrl = ref(null);
+
+// Yeni secilen fotografin ANLIK onizlemesi - dosya henuz sunucuya
+// gitmeden tarayicida gosteriliyor. URL.createObjectURL, secilen
+// dosya icin gecici bir yerel adres uretiyor.
+const yeniFotografOnizleme = ref(null);
+
+function fotografSecildi(olay) {
+    const dosya = olay.target.files[0] ?? null;
+    fotografDosya.value = dosya;
+
+    // Onceki gecici adresi serbest birak - yoksa sayfa acik kaldikca
+    // her secimde bellekte bir kopya birikir.
+    if (yeniFotografOnizleme.value) {
+        URL.revokeObjectURL(yeniFotografOnizleme.value);
+    }
+
+    yeniFotografOnizleme.value = dosya ? URL.createObjectURL(dosya) : null;
+}
+
+// Ad-soyadin bas harfleri: fotografi olmayan ogretmen icin avatar.
+function basHarfler(ogretmen) {
+    return (ogretmen.first_name?.[0] ?? '') + (ogretmen.last_name?.[0] ?? '');
+}
+
 async function yukle(sayfa = 1) {
     yukleniyor.value = true;
 
@@ -42,6 +69,9 @@ function formAc(ogretmen = null) {
     };
     fotografDosya.value = null;
     cvDosya.value = null;
+    yeniFotografOnizleme.value = null;
+    mevcutFotografUrl.value = ogretmen?.photo_url ?? null;
+    mevcutCvUrl.value = ogretmen?.cv_url ?? null;
     hata.value = '';
     formAcik.value = true;
 }
@@ -196,13 +226,40 @@ onMounted(() => yukle());
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Fotoğraf</label>
-                            <input @change="fotografDosya = $event.target.files[0]" type="file" accept="image/*"
-                                   class="mt-1 block w-full text-sm">
+
+                            <div class="mt-2 flex items-center gap-3">
+                                <!-- Yeni secilen varsa ONU goster (anlik onizleme),
+                                     yoksa sunucudaki mevcut fotografi. -->
+                                <img v-if="yeniFotografOnizleme || mevcutFotografUrl"
+                                     :src="yeniFotografOnizleme ?? mevcutFotografUrl" alt=""
+                                     class="h-16 w-16 rounded object-cover border border-gray-200">
+
+                                <span v-if="yeniFotografOnizleme" class="text-xs text-green-700">
+                                    Yeni seçildi — kaydedilince değişecek
+                                </span>
+                            </div>
+
+                            <input @change="fotografSecildi" type="file" accept="image/*"
+                                   class="mt-2 block w-full text-sm">
+                            <p class="mt-1 text-xs text-gray-500">
+                                JPG, PNG veya WEBP — en fazla 2 MB.
+                                <span v-if="mevcutFotografUrl">Yeni dosya seçilirse eskisi silinir.</span>
+                            </p>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Özgeçmiş (PDF)</label>
-                            <input @change="cvDosya = $event.target.files[0]" type="file" accept="application/pdf"
-                                   class="mt-1 block w-full text-sm">
+
+                            <a v-if="mevcutCvUrl && !cvDosya" :href="mevcutCvUrl" target="_blank"
+                               class="mt-2 inline-block text-sm text-indigo-600 hover:text-indigo-900">
+                                Mevcut özgeçmişi görüntüle
+                            </a>
+                            <p v-if="cvDosya" class="mt-2 text-xs text-green-700">
+                                {{ cvDosya.name }} — kaydedilince yüklenecek
+                            </p>
+
+                            <input @change="cvDosya = $event.target.files[0] ?? null" type="file" accept="application/pdf"
+                                   class="mt-2 block w-full text-sm">
+                            <p class="mt-1 text-xs text-gray-500">PDF — en fazla 5 MB.</p>
                         </div>
                     </div>
 
@@ -238,7 +295,25 @@ onMounted(() => yukle());
                         </thead>
                         <tbody class="divide-y divide-gray-100">
                             <tr v-for="o in sonuc.data" :key="o.id">
-                                <td class="px-6 py-3">{{ o.first_name }} {{ o.last_name }}</td>
+                                <td class="px-6 py-3">
+                                    <div class="flex items-center gap-3">
+                                        <img v-if="o.photo_url" :src="o.photo_url" alt=""
+                                             class="h-9 w-9 rounded-full object-cover shrink-0">
+                                        <div v-else
+                                             class="h-9 w-9 rounded-full bg-gray-200 flex items-center justify-center
+                                                    text-xs font-medium text-gray-500 shrink-0">
+                                            {{ basHarfler(o) }}
+                                        </div>
+
+                                        <div>
+                                            <div>{{ o.first_name }} {{ o.last_name }}</div>
+                                            <a v-if="o.cv_url" :href="o.cv_url" target="_blank"
+                                               class="text-xs text-indigo-600 hover:text-indigo-900">
+                                                Özgeçmiş (PDF)
+                                            </a>
+                                        </div>
+                                    </div>
+                                </td>
                                 <td class="px-6 py-3 text-gray-600">{{ o.email }}</td>
                                 <td class="px-6 py-3 tabular-nums">{{ o.max_weekly_hours }}</td>
                                 <td class="px-6 py-3">

@@ -6,6 +6,7 @@ use App\Models\Scopes\OkulScope;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
 class Teacher extends Model
 {
@@ -27,6 +28,28 @@ class Teacher extends Model
         'birth_date' => 'date',
         'is_active' => 'boolean',
     ];
+
+    /**
+     * Bu iki alan veritabaninda YOK - photo_path/cv_path'ten
+     * turetiliyor ama her JSON cevabina otomatik ekleniyor.
+     *
+     * Neden model'de: Blade tarafinda her gosterim yerinde ayri ayri
+     * Storage::url(...) cagriliyordu (listede, formda, duzenleme
+     * ekraninda). Frontend'in "dosya yolundan URL nasil uretilir"
+     * bilgisini tasimasi gerekmiyor - model kendi verisinin nasil
+     * adreslendigini bilsin, tuketen taraf hazir URL alsin.
+     */
+    protected $appends = ['photo_url', 'cv_url'];
+
+    public function getPhotoUrlAttribute(): ?string
+    {
+        return $this->photo_path ? Storage::disk('public')->url($this->photo_path) : null;
+    }
+
+    public function getCvUrlAttribute(): ?string
+    {
+        return $this->cv_path ? Storage::disk('public')->url($this->cv_path) : null;
+    }
 
     protected static function booted(): void
     {
