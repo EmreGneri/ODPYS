@@ -118,4 +118,13 @@ Route::middleware(['auth', 'admin', 'aktifokul'])->group(function () {
     Route::post('/izinler/{izin}/reddet', [IzinController::class, 'reddet'])->name('izinler.reddet');
 });
 
+// SPA "kabuk" sayfasi (Faz 6 - eski Blade sistemiyle paralel yayinda).
+// Middleware YOK: giris sayfasi da bu prefiks altinda (/app/giris),
+// henuz giris yapmamis biri de bu sayfaya erisebilmeli. Gercek yetki
+// kontrolu HER ZAMAN API tarafinda (auth:sanctum/admin/teacher
+// middleware'leri) yapiliyor, bu sadece bos bir HTML kabugu.
+Route::get('/app/{any?}', fn () => view('spa'))
+    ->where('any', '.*')
+    ->name('spa');
+
 require __DIR__.'/auth.php';
