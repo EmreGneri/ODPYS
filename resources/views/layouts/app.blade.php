@@ -16,6 +16,19 @@
     </head>
     <body class="font-sans antialiased">
         <div class="min-h-screen bg-gray-100">
+            {{-- Faz 6: iki sistem paralel calisiyor. Bu bant, kullanicinin
+                 hangi arayuzde oldugunu net gostersin ve yeni arayuzle
+                 karsilastirabilsin diye. Eski sistem tamamen kaldirildiginda
+                 bu bant da silinecek. --}}
+            <div class="bg-amber-50 border-b border-amber-200 text-amber-900 text-sm">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex items-center justify-between gap-4">
+                    <span>Klasik arayüzdesiniz. Yeni arayüz (SPA) yayında.</span>
+                    <a href="/app" class="underline whitespace-nowrap hover:text-amber-950">
+                        Yeni arayüze geç &rarr;
+                    </a>
+                </div>
+            </div>
+
             @include('layouts.navigation')
 
             <!-- Page Heading -->

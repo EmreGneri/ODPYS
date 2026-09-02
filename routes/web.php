@@ -15,8 +15,12 @@ use App\Http\Controllers\TeacherController;
 use App\Http\Controllers\UcretController;
 use Illuminate\Support\Facades\Route;
 
+// Faz 6: kok adres artik SPA'ya yonlendiriyor. Giris yapmis kullanici
+// dogrudan uygulamaya, yapmamis olan SPA'nin giris ekranina dusuyor.
+// Eski Blade ekranlari SILINMEDI - /seviyeler, /cizelge gibi adresler
+// hala calisiyor, sadece artik varsayilan giris noktasi degil.
 Route::get('/', function () {
-    return view('welcome');
+    return redirect(auth()->check() ? '/app' : '/app/giris');
 });
 
 Route::get('/dashboard', [DashboardController::class, 'index'])

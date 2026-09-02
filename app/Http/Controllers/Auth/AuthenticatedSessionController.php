@@ -66,7 +66,16 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        // Faz 6: varsayilan arayuz artik SPA. Eski Blade ekranlari
+        // silinmedi - URL'i elle yazan (ya da giris oncesi bir eski
+        // sayfaya gitmeye calisan, yani intended() dolu olan) kullanici
+        // oraya gitmeye devam edebiliyor; sadece VARSAYILAN hedef degisti.
+        //
+        // SPA'nin kendi giris formu (Giris.vue) bu yonlendirmeyi zaten
+        // kullanmiyor - istegi atip cevabi yok sayiyor, sonra kendi
+        // router.push'unu yapiyor. Yani bu degisiklik SPA'yi etkilemiyor,
+        // sadece eski Blade giris formundan gelenleri SPA'ya tasiyor.
+        return redirect()->intended('/app');
     }
 
     /**
