@@ -78,7 +78,11 @@ async function girisYap() {
             </button>
         </form>
 
-        <router-link :to="{ name: 'giris-secim' }" class="block mt-4 text-sm text-gray-600 hover:text-gray-900">
+        <router-link :to="{ name: 'sifremi-unuttum' }" class="block mt-4 text-sm text-indigo-600 hover:text-indigo-900">
+            Şifremi unuttum
+        </router-link>
+
+        <router-link :to="{ name: 'giris-secim' }" class="block mt-2 text-sm text-gray-600 hover:text-gray-900">
             &larr; Giriş türünü değiştir
         </router-link>
     </div>

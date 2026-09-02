@@ -19,6 +19,19 @@ const routes = [
         component: () => import('./pages/Giris.vue'),
     },
     {
+        path: '/app/sifremi-unuttum',
+        name: 'sifremi-unuttum',
+        component: () => import('./pages/SifremiUnuttum.vue'),
+    },
+    {
+        // :token URL'in kendisinde, e-posta ?email= sorgu parametresinde -
+        // AppServiceProvider::boot()'taki ResetPassword::createUrlUsing
+        // e-posta linkini bu formatta uretiyor.
+        path: '/app/sifre-sifirla/:token',
+        name: 'sifre-sifirla',
+        component: () => import('./pages/SifreSifirla.vue'),
+    },
+    {
         path: '/app',
         name: 'anasayfa',
         component: () => import('./pages/Anasayfa.vue'),
@@ -46,6 +59,13 @@ router.beforeEach(async (to) => {
 
     if (to.meta.auth && !auth.girisYapilmis) {
         return { name: 'giris-secim' };
+    }
+
+    // Faz 4'te ekranlar meta:{ role: 'admin' } gibi isaretlenecek -
+    // rolu uymayan kullanici kendi anasayfasina donuyor. Simdiden
+    // altyapiyi hazirliyoruz, henuz kullanan bir rota yok.
+    if (to.meta.role && auth.rol !== to.meta.role) {
+        return { name: 'anasayfa' };
     }
 });
 
