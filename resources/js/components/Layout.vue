@@ -1,4 +1,5 @@
 <script setup>
+import { computed } from 'vue';
 import axios from 'axios';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
@@ -31,6 +32,21 @@ const ogretmenMenu = [
     { ad: 'İzinlerim', rota: 'ogretmen-izinler' },
 ];
 
+/**
+ * Kullanicinin bas harfleri - profil butonundaki kucuk yuvarlak
+ * icin. Ogretmen listesindeki avatar ile ayni fikir: fotograf yok,
+ * o yuzden isim uzerinden bir simge uretiyoruz.
+ */
+const basHarfler = computed(() => {
+    return (auth.kullanici?.name ?? '?')
+        .trim()
+        .split(/\s+/)
+        .slice(0, 2)
+        .map((kelime) => kelime.charAt(0))
+        .join('')
+        .toLocaleUpperCase('tr');
+});
+
 async function cikisYap() {
     await axios.post('/logout', {}, { headers: { Accept: 'application/json' } });
     auth.cikisYap();
@@ -57,8 +73,19 @@ async function cikisYap() {
                         </router-link>
                     </div>
 
-                    <div class="flex items-center gap-4 shrink-0">
-                        <span class="text-sm text-gray-500">{{ auth.kullanici?.name }}</span>
+                    <div class="flex items-center gap-4 shrink-0 pl-4">
+                        <router-link
+                            :to="{ name: 'profil' }"
+                            class="flex items-center gap-2 text-sm transition"
+                            :class="$route.name === 'profil' ? 'text-gray-900' : 'text-gray-500 hover:text-gray-800'"
+                            title="Profil ve şifre"
+                        >
+                            <span class="flex h-7 w-7 items-center justify-center rounded-full bg-gray-200 text-xs font-medium text-gray-700">
+                                {{ basHarfler }}
+                            </span>
+                            <span class="hidden whitespace-nowrap sm:inline">{{ auth.kullanici?.name }}</span>
+                        </router-link>
+
                         <button @click="cikisYap" class="text-sm text-gray-500 hover:text-gray-700">
                             Çıkış
                         </button>

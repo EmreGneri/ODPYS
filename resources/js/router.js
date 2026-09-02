@@ -167,6 +167,18 @@ const routes = [
         meta: { auth: true, role: 'teacher' },
     },
 
+    // ───── Her iki rol icin ortak ─────
+    // meta.role YOK: profil, hem yoneticinin hem ogretmenin erisebilmesi
+    // gereken tek ekran (herkes kendi adini/sifresini degistirebilmeli).
+    // Arka uctaki rotalar da (routes/api.php) ayni sebeple admin/teacher
+    // alt gruplarinin disinda duruyor.
+    {
+        path: '/app/profil',
+        name: 'profil',
+        component: () => import('./pages/Profil.vue'),
+        meta: { auth: true },
+    },
+
     // ───── /app: role gore dogru anasayfaya yonlendir ─────
     // Burada 'redirect' KULLANMIYORUM: Vue Router'da redirect, guard'dan
     // ONCE calisir - yani auth.kontrolEt() henuz calismamis olur ve

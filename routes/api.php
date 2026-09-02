@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\IzinController as ApiIzinController;
 use App\Http\Controllers\Api\LevelController as ApiLevelController;
 use App\Http\Controllers\Api\OgretmenPanelController as ApiOgretmenPanelController;
 use App\Http\Controllers\Api\PasswordController as ApiPasswordController;
+use App\Http\Controllers\Api\ProfileController as ApiProfileController;
 use App\Http\Controllers\Api\ProgramController as ApiProgramController;
 use App\Http\Controllers\Api\RoomController as ApiRoomController;
 use App\Http\Controllers\Api\SchoolController as ApiSchoolController;
@@ -33,6 +34,21 @@ Route::middleware(['auth:sanctum', 'aktifokul'])->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
+
+    // ───── HER İKİ ROL — kendi hesabı ─────
+    // Bilerek admin/teacher alt gruplarinin DISINDA: yonetici de
+    // ogretmen de kendi adini/e-postasini ve sifresini
+    // degistirebilmeli. Yetki zaten dogal olarak siniri ciziyor -
+    // controller her zaman $request->user() uzerinde calisiyor,
+    // yani kimse baskasinin hesabina dokunamiyor.
+    //
+    // Hesap SILME (web'de ProfileController::destroy var) bilerek
+    // tasinmadi: bu bir okul sistemi, tek yonetici hesabi kendini
+    // silerse sisteme girilemez hale geliyor. Gerekirse ayri bir is
+    // olarak, "baska bir yonetici tarafindan silme" seklinde
+    // eklenmeli.
+    Route::put('/profil', [ApiProfileController::class, 'guncelle']);
+    Route::put('/profil/sifre', [ApiProfileController::class, 'sifreDegistir']);
 
     // ───── ÖĞRETMEN TARAFI — sartname 2.7.4: sadece kendi bilgileri ─────
     Route::middleware('teacher')->prefix('ogretmen')->group(function () {
