@@ -488,13 +488,22 @@ Gerçek tarayıcıda, gerçek veriyle test edildi:
 | Öğretmen paneli | `pages/OgretmenPanel.vue` | `ogretmen/panel` |
 | Öğretmen izinleri | `pages/OgretmenIzinler.vue` | `ogretmen/izinler/index` |
 | İzin oluşturma | `pages/IzinOlustur.vue` | `ogretmen/izinler/create` |
+| Profil (ad/e-posta, şifre) | `pages/Profil.vue` | `profile/edit` — Faz 4'te atlanmıştı, sonradan eklendi (bkz. 14. bölüm) |
 
 **API'ye eklenenler (sayfaların ihtiyacı olan, Faz 1'de atlanmış uç noktalar):**
 `Api\SchoolController` → `index`, `update`, `okullar`, `okulEkle`
 `Api\CizelgeController` → `index`, `yuk`
+`Api\ProfileController` → `guncelle`, `sifreDegistir` (bkz. 14. bölüm)
+`Api\GezinmeController` → `index` (bkz. 15. bölüm)
 
 **Modele eklenenler:**
 `app/Models/Teacher.php` → `photo_url` / `cv_url` accessor'ları + `$appends` (yüklenen fotoğraf ve CV'nin adresi; bkz. 5. bölüm)
+
+**Yapılandırma düzeltmesi:**
+`tailwind.config.js` → `content` listesine `.vue`/`.js` dosyaları eklendi (bkz. 12. bölüm) — bu tek düzeltme SPA'nın bütün görünümünü etkiledi.
+
+**Yeni bileşenler:**
+`components/GirisKarti.vue` (bkz. 13. bölüm), `components/KayitGezinme.vue` (bkz. 15. bölüm)
 
 ---
 
@@ -574,13 +583,322 @@ Ben (Claude) SPA'yı test ettim, ama **sen henüz gerçek kullanımda denemedin.
 
 ---
 
-## 12. Sırada Ne Var
+## 12. Faz 6 Sonrası Bulunan Bir Tasarım Hatası: Tailwind `.vue` Dosyalarını Hiç Taramıyordu
+
+Sen SPA'yı gerçek kullanımda gezerken ("giriş ekranı çirkin görünüyor, profil sayfası yok" diye bildirdin) iki gerçek eksik ortaya çıktı. Bu bölüm birincisini, en temel olanı anlatıyor — çünkü sebebi tasarım değil, bir **yapılandırma hatasıydı** ve SPA'nın **tamamını** etkiliyordu.
+
+### Sorun neydi?
+
+Giriş seçim ekranındaki kart, ortalanmış dar bir kutu olması gerekirken tam genişliğe yayılıyordu. İlk bakışta "tasarım eksik" gibi görünüyor ama gerçek sebep başka:
+
+**Dosya: `tailwind.config.js`** (hatalı hâli)
+
+```js
+export default {
+    content: [
+        './vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php',
+        './storage/framework/views/*.php',
+        './resources/views/**/*.blade.php',
+    ],
+    // ...
+};
+```
+
+**`content` nedir?** Tailwind, projede binlerce olası CSS sınıfı **üretmez** — sadece gerçekten kullanılan sınıfları üretir ("purge/tree-shaking" mantığı). Bunun için `content` listesindeki dosyaları **tarar**, içlerinde geçen `class="..."` string'lerini bulur, sadece onların CSS kuralını derlenmiş dosyaya koyar.
+
+**Buradaki hata:** Liste sadece `.blade.php` dosyalarını içeriyordu. SPA'ya geçince bütün sayfalar `.vue` dosyalarına taşındı (bkz. bu dokümanın 1-11. bölümleri) — ama bu liste hiç güncellenmedi. Sonuç: `.vue` dosyalarında **sadece** geçen sınıflar (`max-w-sm`, `mt-24`, `sm:p-8`, `focus:ring-offset-2` gibi) derlenmiş CSS'e hiç girmedi. Tarayıcıda bu sınıfları yazmak **hiçbir hataya yol açmıyor** — sınıf HTML'de duruyor ama karşılığı CSS'te yok, tarayıcı sessizce hiçbir şey yapmıyor.
+
+**Neden fark etmesi zordu?** Blade'de de tesadüfen geçen sınıflar (`bg-gray-800`, `rounded-md`, `px-4`) zaten deriye giriyordu — çünkü onlar `.blade.php` dosyalarında da geçiyordu. Yani sayfa "tamamen biçimsiz" değil, **"yarım biçimli"** görünüyordu: renkler ve köşe yuvarlamaları çalışıyor ama boşluklar/genişlikler rastgele. Bu, "component hiç render olmuyor" gibi net bir hatadan çok daha sinsi bir belirti.
+
+**Düzeltme:**
+
+```js
+content: [
+    './vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php',
+    './storage/framework/views/*.php',
+    './resources/views/**/*.blade.php',
+    './resources/js/**/*.vue',
+    './resources/js/**/*.js',
+],
+```
+
+İki yeni satır: `.vue` dosyaları ve `.js` dosyaları (bazı sınıf isimleri JS içinde string olarak da kurulabiliyor, ör. `:class="şart ? 'a' : 'b'"`). Bu **tek dosyadaki iki satır**, SPA'nın bütün sayfalarını aynı anda düzeltti — Tailwind'in `content` listesi proje genelinde tek bir yerden çalıştığı için.
+
+### İkinci bir bayat dosya sorunu: `public/hot`
+
+Aynı anda başka bir şey daha bulundu: sunucuda **27 Ağustos'tan beri unutulmuş bir `npm run dev` süreci** çalışıyordu. Laravel'in `@vite(...)` fonksiyonu, `public/hot` dosyası varsa "demek ki dev sunucusu ayakta" diye onun adresine (`http://localhost:5173`) yönlendirme yapıyor — üretim build'ini (`public/build/`) görmezden geliyor. O dev sunucusu haftalardır güncellenmemiş eski kodu sunuyordu.
+
+```bash
+kill <eski-vite-pid>
+rm public/hot
+npm run build
+```
+
+**Ders:** `.vue` değişikliğinden sonra `npm run build` çalıştırmak yetmiyor — `public/hot` duruyorsa build'in hiç etkisi olmuyor, tarayıcı hep dev sunucusundan (ya da onun çöktüğü an, hiçbir şeyden) veri çekmeye çalışıyor.
+
+---
+
+## 13. Giriş Ekranlarının Yeniden Tasarımı
+
+Tailwind hatası düzeltilince kart zaten doğru ortalandı, ama bu fırsatla giriş akışının **görünümü** de iyileştirildi — planın "tasarım Claude'un işi değil, hazır Blade'i referans al" ilkesine göre değil, çünkü giriş ekranının Blade'de zaten sade bir karşılığı vardı ve burada senin "göze güzel gelmiyor" geri bildirimin vardı.
+
+### Ortak kabuk: `GirisKarti.vue`
+
+Dört giriş sayfası (tür seçimi, giriş formu, şifremi unuttum, şifre sıfırlama — bkz. bu dokümanın Faz 3'ü) neredeyse aynı iskelete sahip: marka başlığı + ortalanmış beyaz kart. Bunu dört dosyaya kopyalamak yerine ortak bir bileşene çıkarıldı:
+
+**Dosya: `resources/js/components/GirisKarti.vue`** (yeni)
+
+```vue
+<script setup>
+defineProps({
+    baslik: { type: String, required: true },
+    aciklama: { type: String, default: '' },
+});
+</script>
+
+<template>
+    <div class="min-h-screen bg-gray-100 flex flex-col items-center justify-center px-4 py-12">
+        <div class="mb-6 text-center">
+            <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-gray-800 text-base font-semibold text-white">
+                OD
+            </div>
+            <h1 class="mt-3 text-xl font-semibold text-gray-800">ODPYS</h1>
+        </div>
+
+        <div class="w-full max-w-md rounded-xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+            <h2 class="text-base font-semibold text-gray-800">{{ baslik }}</h2>
+            <p v-if="aciklama" class="mt-1 text-sm text-gray-500">{{ aciklama }}</p>
+
+            <div class="mt-6">
+                <slot />
+            </div>
+        </div>
+
+        <div class="mt-6 text-center text-sm">
+            <slot name="alt" />
+        </div>
+    </div>
+</template>
+```
+
+**Yeni kavram: adlandırılmış slot (`<slot name="alt" />`).** Faz 4'te `Layout.vue`'da gördüğün `<slot />` **tek** bir boşluktu. Burada **iki** boşluk var: isimsiz `<slot />` kartın gövdesi (form) için, `<slot name="alt" />` kartın **altında** kalan küçük linkler için (ör. "Giriş türünü değiştir"). Kullanan sayfa şöyle dolduruyor:
+
+```vue
+<GirisKarti baslik="Yönetici Girişi">
+    <form>...</form>                         <!-- isimsiz slot -->
+
+    <template #alt>                            <!-- "alt" adlı slot -->
+        <router-link :to="{ name: 'giris-secim' }">← Giriş türünü değiştir</router-link>
+    </template>
+</GirisKarti>
+```
+
+`<template #alt>` — `#alt` kısaltması `v-slot:alt` demek, "bu bloğu `alt` adlı slot'a koy" anlamına geliyor.
+
+### Diğer üç sayfa aynı kabuğa taşındı
+
+`GirisSecim.vue`, `Giris.vue`, `SifremiUnuttum.vue`, `SifreSifirla.vue` — dördü de artık `<GirisKarti>` içinde çalışıyor, kendi form mantıkları (Faz 3'te anlatılan axios çağrıları) **hiç değişmedi**, sadece etraflarındaki HTML iskeleti `GirisKarti`'ye devredildi. `GirisSecim.vue`'daki seçenekler de sade düğmelerden, açıklamalı satırlara çevrildi ("Yönetici Girişi / Okul, program, çizelge ve izin yönetimi").
+
+---
+
+## 14. Yeni Ekran: Profil (Ad/E-posta ve Şifre Değiştirme)
+
+Sen "profil yok, şifre değiştiremiyorum" diye bildirdin — haklıydın, Faz 4 listesinde `/profile` hiç yoktu; eski Blade tarafında vardı ama SPA'ya hiç taşınmamıştı.
+
+### Backend: `Api\ProfileController`
+
+**Dosya: `app/Http/Controllers/Api/ProfileController.php`** (yeni)
+
+```php
+class ProfileController extends Controller
+{
+    public function guncelle(ProfileUpdateRequest $request): JsonResponse
+    {
+        $kullanici = $request->user();
+        $kullanici->fill($request->validated());
+
+        if ($kullanici->isDirty('email')) {
+            $kullanici->email_verified_at = null;
+        }
+
+        $kullanici->save();
+
+        return response()->json([
+            'mesaj' => 'Profil bilgileriniz güncellendi.',
+            'kullanici' => $kullanici,
+        ]);
+    }
+
+    public function sifreDegistir(Request $request): JsonResponse
+    {
+        $dogrulanmis = $request->validate([
+            'current_password' => ['required', 'current_password'],
+            'password' => ['required', Password::defaults(), 'confirmed'],
+        ]);
+
+        $request->user()->update([
+            'password' => Hash::make($dogrulanmis['password']),
+        ]);
+
+        return response()->json(['mesaj' => 'Şifreniz değiştirildi.']);
+    }
+}
+```
+
+**Yeni kavramlar:**
+
+- **`ProfileUpdateRequest` yeniden kullanıldı.** Bu, web tarafındaki eski `ProfileController`'ın da kullandığı **aynı** `FormRequest` sınıfı — `e-posta benzersiz olmalı ama kendi kaydini es geç` (`Rule::unique(...)->ignore($this->user()->id)`) kuralı tek yerde duruyor. API ile web arasında kural tekrarı yok, ikisi de aynı kuraldan geçiyor.
+- **`'current_password'` doğrulama kuralı** — Laravel'in hazır bir kuralı: girilen değeri, **giriş yapmış kullanıcının mevcut şifresiyle** karşılaştırır. Bu, "acık bırakılmış bir tarayıcının başına geçen biri eski şifreyi bilmeden yeni şifre koyamasın" güvenliği sağlıyor.
+- **`Password::defaults()`** — sabit bir kural yazmak yerine (`'min:8'` gibi), uygulamanın **global şifre politikasına** işaret ediyor. Bu politika nerede tanımlıysa (genelde `AppServiceProvider`), hem kayıt hem şifre sıfırlama hem de bu profil ekranı **aynı kuralı** paylaşıyor.
+- **Rotalar `admin`/`teacher` gruplarının DIŞINDA.** `routes/api.php`'de:
+  ```php
+  Route::put('/profil', [ApiProfileController::class, 'guncelle']);
+  Route::put('/profil/sifre', [ApiProfileController::class, 'sifreDegistir']);
+  ```
+  Bu bilinçli bir karar: yönetici de öğretmen de kendi hesabını düzenleyebilmeli. Ekstra bir yetki kontrolü de gerekmiyor — controller her zaman `$request->user()` üzerinde çalışıyor, yani biri **başka birinin** hesabını asla düzenleyemiyor (URL'de id yok, hep "beni" demek).
+- **Hesap silme taşınmadı** (web'de `ProfileController::destroy` var). Bilinçli: bu bir okul sistemi, tek admin hesabı kendini silerse kimse sisteme giremez — "başka bir admin tarafından silme" gibi farklı bir tasarım gerektirir, ileride ayrı bir iş.
+
+### Frontend: `Profil.vue`
+
+**Dosya: `resources/js/pages/Profil.vue`** (yeni)
+
+İki ayrı form/kart — biri ad/e-posta, biri şifre. İkisinin de kendi hata state'i (`bilgiHatalari`, `sifreHatalari`) var, biri hata verirken öbürü etkilenmiyor. Kavramsal olarak Faz 4'teki `Seviyeler.vue` kalıbının aynısı (`ref`, `try/catch`, alan bazlı 422 hataları) — tek yeni şey:
+
+```js
+async function bilgiKaydet() {
+    // ...
+    const { data } = await api.put('/profil', { name: ad.value, email: eposta.value });
+    auth.girisYapildi(data.kullanici);   // Pinia store'u tazele
+}
+```
+
+**`auth.girisYapildi(...)` neden burada çağrılıyor?** Ad değiştiğinde, `Layout.vue`'daki üst menüde görünen isim de **aynı anda** güncellenmeli — o isim Pinia store'daki `kullanici.name`'den geliyor (bkz. Faz 2'deki `useAuthStore`). Sunucudan gelen güncel kullanıcıyı store'a yazmak, sayfayı yeniden yüklemeden her yerin senkron kalmasını sağlıyor.
+
+### `Layout.vue`: sağ üstte artık bir profil bağlantısı
+
+Eskiden sağ üstte düz bir isim yazısı vardı. Artık bir bağlantı, öğretmen listesindeki avatar desenini (baş harfler) tekrar kullanıyor:
+
+```vue
+<router-link :to="{ name: 'profil' }" class="flex items-center gap-2 text-sm">
+    <span class="flex h-7 w-7 items-center justify-center rounded-full bg-gray-200 text-xs font-medium">
+        {{ basHarfler }}
+    </span>
+    <span class="hidden sm:inline">{{ auth.kullanici?.name }}</span>
+</router-link>
+```
+
+`basHarfler` bir `computed` — isim değiştikçe otomatik yeniden hesaplanıyor (`"Profil Test Guncel"` → `"PT"` gibi).
+
+### Doğrulama
+
+Geçici bir test hesabıyla (test sonunda silindi): ad değiştirildi ve üst menüye anında yansıdı; yanlış mevcut şifre "Mevcut şifreniz hatalı." verdi; doğru şifreyle değişiklik kaydedildi ve **yeni şifreyle tekrar giriş yapılabildi** — yani değişiklik gerçekten veritabanına yazıldı, sahte bir başarı mesajı değildi.
+
+---
+
+## 15. Çizelge ve Ders Yetkileri Ekranlarına Kayıtlar Arası Gezinme
+
+Sen bir sonraki geri bildiriminde şunu istedin: çizelge (`/app/cizelge/sube/{id}`, `/app/cizelge/ogretmen/{id}`) ve ders yetkileri (`/app/ogretmenler/{id}/dersler`) ekranlarında, **başka bir kayda geçmek için her seferinde listeye dönmek** gerekiyordu. Üç ekrana da ortak bir gezinme çubuğu eklendi: önceki/sonraki düğmeleri, doğrudan atlamak için açılır liste, "3 / 32" sayacı.
+
+### Neden yeni bir API uç noktası gerekti — `GET /api/gezinme`
+
+İlk bakışta "zaten `/api/cizelge` şube ve öğretmen listelerini dönüyor" diye düşünülebilir, ama iki sebepten uygun değildi:
+
+- `/api/cizelge`, gezinme için gereksiz bir **çakışma kontrolü** (üç ayrı gruplu SQL sorgusu) da çalıştırıyor — sadece bir açılır liste doldurmak için o maliyeti ödemek gereksiz.
+- `/api/ogretmenler` **sayfalanmış** (20'şer kayıt) — gezinme için **bütün** liste lazım, yoksa 21. öğretmene "sonraki" ile hiç geçilemezdi.
+
+Bu yüzden sade, tek işi olan bir controller yazıldı:
+
+**Dosya: `app/Http/Controllers/Api/GezinmeController.php`** (yeni)
+
+```php
+public function index(): array
+{
+    return [
+        'subeler' => $this->subeler(),        // [{id, ad}, ...] 9A, 9B, 10A sırasında
+        'ogretmenler' => $this->ogretmenler(), // sadece aktif öğretmenler
+    ];
+}
+```
+
+Sıralama, kullanıcının **listede zaten gördüğü sırayla aynı** — yoksa "sonraki" düğmesi beklenmedik bir kayda giderdi.
+
+### Yeniden kullanılabilir bileşen: `KayitGezinme.vue`
+
+**Dosya: `resources/js/components/KayitGezinme.vue`** (yeni)
+
+Bu bileşenin önemli tasarım kararı: **kendi verisini çekmiyor.** Listeyi ve "şu an hangi kayıttayım" bilgisini dışarıdan `props` olarak alıyor:
+
+```js
+const props = defineProps({
+    kayitlar: { type: Array, default: () => [] },      // [{id, ad}]
+    aktifId: { type: [String, Number], required: true },
+    rota: { type: String, required: true },              // gidilecek rotanın adı
+});
+```
+
+Bu sayede **tek bir bileşen üç farklı ekranda** çalışıyor (şube çizelgesi, öğretmen çizelgesi, ders yetkileri) — her ekran sadece kendi listesini ve rota adını veriyor. Yarın dördüncü bir ekran gerekirse, yine sadece prop vermek yetecek.
+
+**İnce bir hata payı:** Vue Router'da rota parametreleri (`route.params.id`) her zaman **string** gelir (`"153"`), API'den gelen id'ler ise **number**'dır (`153`). Bunları doğrudan karşılaştırmak (`===`) hep `false` verir — "şu an hangi kayıttayım" hesabı hep `-1` çıkar, düğmeler hiç aktifleşmez. Çözüm, karşılaştırmadan önce ikisini de `String(...)`'e çevirmek:
+
+```js
+const sira = computed(() =>
+    props.kayitlar.findIndex((kayit) => String(kayit.id) === String(props.aktifId))
+);
+```
+
+### Ekranlar arası geçişte veri neden yeniden çekiliyor
+
+`CizelgeIzgara.vue`'da Faz 4'ten hatırla: aynı bileşende 9A'dan 9B'ye geçince, Vue Router **aynı bileşeni yeniden kullanır**, `onMounted` bir daha çalışmaz. Faz 4'te bu `watch(() => [route.name, route.params.id], yukle)` ile çözülmüştü — gezinme düğmeleri de aynı mekanizmadan geçtiği için ekstra bir şey gerekmedi, watch zaten oradaydı.
+
+`OgretmenDersleri.vue`'da ise bu watch **hiç yoktu** (eskiden tek bir öğretmene gidilip geri dönülürdü, hiç "aynı bileşende öğretmen değiştirme" senaryosu yoktu). Gezinme eklenince bu senaryo ilk kez ortaya çıktı, watch eklendi:
+
+```js
+watch(() => route.params.id, yukle);
+```
+
+Bu olmadan gezinme düğmesi adres çubuğunu değiştirir ama tablo **eski öğretmenin** yetkilerini göstermeye devam ederdi — üstüne "Kaydet"e basılsa **yanlış öğretmene** yazılırdı. Sessiz ve tehlikeli bir hata olurdu.
+
+### Bulunan ikinci bir hata: 404'te sayfa sonsuza kadar "Yükleniyor..." kalıyordu
+
+Gezinmeyi test ederken, **başka bir okula ait** bir çizelge adresi (`/app/cizelge/ogretmen/153` gibi) denendiğinde ilginç bir şey görüldü: sayfa sonsuza kadar "Yükleniyor..." yazıyordu. Sebep: iki ekranda da veri çekme isteği `try/catch` içinde değildi — istek 404 ile başarısız olunca `yukleniyor.value = false` satırına hiç ulaşılmıyordu.
+
+Bu, çoklu okulda **çok olası bir durum**: aktif okul değiştiyse, önceden kaydedilmiş bir yer imi artık "aktif okulda yok" sayılır (rota model binding otomatik 404 döner — bkz. [[coklu-okul-pivot-scope-denetimi]]). Düzeltme:
+
+```js
+try {
+    const { data } = await api.get(`/cizelge/${tur.value}/${route.params.id}`);
+    veri.value = data;
+} catch (e) {
+    veri.value = null;
+    hata.value = e.response?.status === 404
+        ? 'Bu kayıt aktif okulda bulunamadı. Başka bir okula ait olabilir — "Okullar" ekranından aktif okulu değiştirip tekrar deneyin.'
+        : 'Çizelge yüklenemedi.';
+} finally {
+    yukleniyor.value = false;
+}
+```
+
+Artık kullanıcı ne olduğunu anlıyor **ve** gezinme çubuğundaki açılır listeden aktif okuldaki bir kayda geçebiliyor — çıkmaz sokak değil.
+
+### Yan bir iyileştirme: ders yetkileri ekranının başlığı
+
+Eskiden sayfa başlığı sabit "Öğretmen Ders Yetkileri" idi — hangi öğretmenin düzenlendiği **hiçbir yerde** yazmıyordu. Öğretmenler arası gezinme gelince bu ciddi bir eksiklik oldu (yanlış öğretmende olduğunu fark etmeden değişiklik yapabilirdin). `Api\TeacherController::dersler()` artık öğretmenin adını da dönüyor, başlık dinamik: "Ders Yetkileri — Ali Kaya".
+
+Ayrıca kaydettikten sonra **artık listeye dönmüyor** (eskiden 1.2 saniye sonra otomatik dönüyordu) — doğal akış "kaydet → sonraki öğretmen" oldu, listeye dönmek bu akışı her seferinde kesiyordu.
+
+### Doğrulama
+
+Geçici test hesabıyla: öğretmen çizelgesinde "sonraki" 1/32 → 2/32 geçişinde başlık, tablo ve PDF/Excel linkleri birlikte güncellendi; şube çizelgesinde açılır listeden 12C'ye atlandı, son kayıtta "sonraki" pasifleşti; ders yetkilerinde öğretmen değişince işaretli kutular da gerçekten değişti (Ali Kaya → Kimya, 4 seviye); başka okula ait bir adres artık asılı kalmıyor, açıklayıcı hata veriyor.
+
+---
+
+## 16. Sırada Ne Var
 
 Tek kalan adım, planın Faz 6/4. maddesi: **eski Blade sisteminin kaldırılması.** Bunun için önce senin SPA'yı gerçek kullanımda gezmen gerekiyor:
 
-1. `/app` adresine gir, her ekranı aç (Seviyeler, Şubeler, Dersler, Öğretmenler, Program, Çizelge, Ücretler, İzinler).
+1. `/app` adresine gir, her ekranı aç (Seviyeler, Şubeler, Dersler, Öğretmenler, Program, Çizelge, Ücretler, İzinler, **Profil**).
 2. Bir ekranda şüphe duyarsan, sarı banttaki linkten eski arayüze geçip aynı ekranı karşılaştır.
-3. Bir kayıt ekleme/düzenleme/silme dene. (Öğretmen fotoğraf/CV yükleme **artık test edildi ve düzeltildi** — bkz. 5. bölüm; ilk yazımda yükleme çalışıyor ama gösterim eksikti.)
+3. Bir kayıt ekleme/düzenleme/silme dene. (Öğretmen fotoğraf/CV yükleme, giriş ekranlarının görünümü, profil ve gezinme **artık gerçek kullanımda bulunup düzeltildi** — bu doküman bu düzeltmeleri 12-15. bölümlerde anlatıyor.)
 4. Bir fark ya da hata görürsen not al.
 
 Hepsi doğruysa, eski Blade rotaları/view'ları silinebilir. Ama unutma: teslim tarihine az kala çalışan bir yedeği silmenin **pratik bir faydası yok** — iki sistemin paralel durması teslim açısından risk değil, aksine güvence. Silme işlemi "temizlik" amaçlıdır, zorunluluk değil.
