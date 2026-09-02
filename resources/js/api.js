@@ -50,21 +50,25 @@ api.interceptors.request.use(async (config) => {
 });
 
 /**
- * 401 (kimlik dogrulanmamis) her yerde ayni sekilde ele alinsin diye
- * merkezi bir yakalayici: kullaniciyi giris sayfasina yonlendiriyor.
- * 422 (dogrulama hatasi) burada YAKALANMIYOR - onu her form kendi
- * catch bloguyla, kullaniciya hangi alanin yanlis oldugunu gostermek
- * icin ayri ele alacak.
+ * BUG (bulundu ve duzeltildi): burada onceden 401 gorunce
+ * window.location.href ile TAM SAYFA yenilemesi yapiliyordu. Bu,
+ * router guard'in kendi rutin "giris yapilmis mi?" kontrolunun
+ * (GET /api/user - giris yapilmamisken 401 donmesi zaten NORMAL ve
+ * BEKLENEN) her calisisinda tetikleniyordu: /app/giris'e her gidiste
+ * guard tekrar kontrol ediyor -> 401 -> tam sayfa yenileme -> Pinia
+ * hafizasi sifirlaniyor -> guard yeniden calisiyor -> tekrar 401 ->
+ * SONSUZ DONGU.
+ *
+ * Yonlendirme sorumlulugu zaten router.js'deki beforeEach guard'da -
+ * o, client-side (sayfa yenilemeden) yonlendiriyor ve sadece auth
+ * gerektiren sayfalarda calisiyor. Burada AYRICA bir yonlendirme
+ * yapmaya hic gerek yok, sadece hatayi oldugu gibi yukari birakiyoruz.
+ * 422 (dogrulama hatasi) zaten hic yakalanmiyordu - onu her form kendi
+ * catch bloguyla ele aliyor.
  */
 api.interceptors.response.use(
     (response) => response,
-    (error) => {
-        if (error.response?.status === 401) {
-            window.location.href = '/app/giris';
-        }
-
-        return Promise.reject(error);
-    }
+    (error) => Promise.reject(error)
 );
 
 export default api;
