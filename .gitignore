@@ -25,3 +25,6 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Veritabani yedekleri - hassas veri (sifre hash'leri vb.) icerir, asla commit edilmemeli
+/yedekler
