@@ -45,9 +45,19 @@ Route::middleware(['auth:sanctum', 'aktifokul'])->group(function () {
     Route::middleware('admin')->group(function () {
         Route::get('/dashboard', [ApiDashboardController::class, 'index']);
 
+        // Cizelge ciktilari - sartname 5. bolum
+        Route::get('/cizelge', [ApiCizelgeController::class, 'index']);
+        Route::get('/cizelge/yuk', [ApiCizelgeController::class, 'yuk']);
         Route::get('/cizelge/sube/{sube}', [ApiCizelgeController::class, 'sube']);
         Route::get('/cizelge/ogretmen/{ogretmen}', [ApiCizelgeController::class, 'ogretmen']);
+
         Route::get('/ucretler', [ApiUcretController::class, 'index']);
+
+        // Okul ayarlari + coklu okul
+        Route::get('/okul', [ApiSchoolController::class, 'index']);
+        Route::put('/okul', [ApiSchoolController::class, 'update']);
+        Route::get('/okullar', [ApiSchoolController::class, 'okullar']);
+        Route::post('/okullar', [ApiSchoolController::class, 'okulEkle']);
         Route::post('/okullar/{okul}/aktif-yap', [ApiSchoolController::class, 'aktifYap']);
 
         Route::apiResource('seviyeler', ApiLevelController::class)
