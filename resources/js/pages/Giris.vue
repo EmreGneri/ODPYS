@@ -1,9 +1,10 @@
 <script setup>
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import axios from 'axios';
 import { csrfCerezGarantiEt } from '../api';
 import { useAuthStore } from '../stores/auth';
+import GirisKarti from '../components/GirisKarti.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -14,7 +15,12 @@ const password = ref('');
 const hata = ref('');
 const gonderiliyor = ref(false);
 
-const baslik = route.params.rol === 'yonetici' ? 'Yönetici Girişi' : 'Öğretmen Girişi';
+// computed: rol URL'den geliyor, kullanici "giris turunu degistir"
+// linkiyle geri gidip obur role gecebiliyor - o zaman baslik da
+// kendiliginden guncellensin diye sabit degil, hesaplanan deger.
+const yonetici = computed(() => route.params.rol === 'yonetici');
+const baslik = computed(() => (yonetici.value ? 'Yönetici Girişi' : 'Öğretmen Girişi'));
+const harf = computed(() => (yonetici.value ? 'Y' : 'Ö'));
 
 /**
  * Bu, /api/* degil, mevcut WEB giris rotasina (/giris/{rol}) atilan
@@ -54,36 +60,68 @@ async function girisYap() {
 </script>
 
 <template>
-    <div class="max-w-sm mx-auto mt-24 px-4">
-        <h1 class="text-lg font-semibold text-gray-800 mb-6">{{ baslik }}</h1>
-
-        <p v-if="hata" class="text-sm text-red-600 mb-4">{{ hata }}</p>
-
-        <form @submit.prevent="girisYap" class="space-y-4">
-            <div>
-                <label class="block text-sm font-medium text-gray-700">E-posta</label>
-                <input v-model="email" type="email" required
-                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm">
+    <GirisKarti :baslik="baslik" aciklama="Hesap bilgilerinizle devam edin.">
+        <template #default>
+            <div class="mb-6 flex items-center gap-2">
+                <span class="flex h-7 w-7 items-center justify-center rounded-md bg-gray-800 text-xs font-semibold text-white">
+                    {{ harf }}
+                </span>
+                <span class="text-xs text-gray-500">
+                    {{ yonetici ? 'Yönetici hesabı' : 'Öğretmen hesabı' }}
+                </span>
             </div>
 
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Şifre</label>
-                <input v-model="password" type="password" required
-                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm">
-            </div>
+            <p v-if="hata" class="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {{ hata }}
+            </p>
 
-            <button type="submit" :disabled="gonderiliyor"
-                    class="w-full px-4 py-2 bg-gray-800 text-white text-sm rounded hover:bg-gray-700 disabled:opacity-50">
-                {{ gonderiliyor ? 'Giriş yapılıyor...' : 'Giriş Yap' }}
-            </button>
-        </form>
+            <form class="space-y-4" @submit.prevent="girisYap">
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700">E-posta</label>
+                    <input
+                        id="email"
+                        v-model="email"
+                        type="email"
+                        required
+                        autocomplete="username"
+                        class="mt-1 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-gray-800 focus:ring-gray-800"
+                    >
+                </div>
 
-        <router-link :to="{ name: 'sifremi-unuttum' }" class="block mt-4 text-sm text-indigo-600 hover:text-indigo-900">
-            Şifremi unuttum
-        </router-link>
+                <div>
+                    <div class="flex items-baseline justify-between">
+                        <label for="password" class="block text-sm font-medium text-gray-700">Şifre</label>
+                        <router-link
+                            :to="{ name: 'sifremi-unuttum' }"
+                            class="text-xs text-gray-500 hover:text-gray-800 hover:underline"
+                        >
+                            Şifremi unuttum
+                        </router-link>
+                    </div>
+                    <input
+                        id="password"
+                        v-model="password"
+                        type="password"
+                        required
+                        autocomplete="current-password"
+                        class="mt-1 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-gray-800 focus:ring-gray-800"
+                    >
+                </div>
 
-        <router-link :to="{ name: 'giris-secim' }" class="block mt-2 text-sm text-gray-600 hover:text-gray-900">
-            &larr; Giriş türünü değiştir
-        </router-link>
-    </div>
+                <button
+                    type="submit"
+                    :disabled="gonderiliyor"
+                    class="w-full rounded-md bg-gray-800 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-800 focus:ring-offset-2 disabled:opacity-50"
+                >
+                    {{ gonderiliyor ? 'Giriş yapılıyor...' : 'Giriş Yap' }}
+                </button>
+            </form>
+        </template>
+
+        <template #alt>
+            <router-link :to="{ name: 'giris-secim' }" class="text-gray-500 hover:text-gray-800 hover:underline">
+                &larr; Giriş türünü değiştir
+            </router-link>
+        </template>
+    </GirisKarti>
 </template>

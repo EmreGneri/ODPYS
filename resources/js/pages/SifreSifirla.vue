@@ -2,6 +2,7 @@
 import { ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import api from '../api';
+import GirisKarti from '../components/GirisKarti.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -41,38 +42,59 @@ async function gonder() {
 </script>
 
 <template>
-    <div class="max-w-sm mx-auto mt-24 px-4">
-        <h1 class="text-lg font-semibold text-gray-800 mb-6">Yeni Şifre Belirle</h1>
-
-        <p v-if="basarili" class="text-sm text-green-700">
+    <GirisKarti baslik="Yeni Şifre Belirle" aciklama="Hesabınız için yeni bir şifre oluşturun.">
+        <p v-if="basarili" class="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
             Şifreniz güncellendi, giriş ekranına yönlendiriliyorsunuz...
         </p>
 
-        <form v-else @submit.prevent="gonder" class="space-y-4">
-            <p v-if="hata" class="text-sm text-red-600">{{ hata }}</p>
+        <form v-else class="space-y-4" @submit.prevent="gonder">
+            <p v-if="hata" class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {{ hata }}
+            </p>
 
             <div>
-                <label class="block text-sm font-medium text-gray-700">E-posta</label>
-                <input v-model="email" type="email" required
-                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm">
+                <label for="email" class="block text-sm font-medium text-gray-700">E-posta</label>
+                <input
+                    id="email"
+                    v-model="email"
+                    type="email"
+                    required
+                    autocomplete="username"
+                    class="mt-1 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-gray-800 focus:ring-gray-800"
+                >
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-gray-700">Yeni Şifre</label>
-                <input v-model="password" type="password" required
-                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm">
+                <label for="password" class="block text-sm font-medium text-gray-700">Yeni Şifre</label>
+                <input
+                    id="password"
+                    v-model="password"
+                    type="password"
+                    required
+                    autocomplete="new-password"
+                    class="mt-1 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-gray-800 focus:ring-gray-800"
+                >
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-gray-700">Yeni Şifre (Tekrar)</label>
-                <input v-model="passwordConfirmation" type="password" required
-                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm">
+                <label for="password_confirmation" class="block text-sm font-medium text-gray-700">Yeni Şifre (Tekrar)</label>
+                <input
+                    id="password_confirmation"
+                    v-model="passwordConfirmation"
+                    type="password"
+                    required
+                    autocomplete="new-password"
+                    class="mt-1 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-gray-800 focus:ring-gray-800"
+                >
             </div>
 
-            <button type="submit" :disabled="gonderiliyor"
-                    class="w-full px-4 py-2 bg-gray-800 text-white text-sm rounded hover:bg-gray-700 disabled:opacity-50">
+            <button
+                type="submit"
+                :disabled="gonderiliyor"
+                class="w-full rounded-md bg-gray-800 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-800 focus:ring-offset-2 disabled:opacity-50"
+            >
                 {{ gonderiliyor ? 'Kaydediliyor...' : 'Şifreyi Güncelle' }}
             </button>
         </form>
-    </div>
+    </GirisKarti>
 </template>
