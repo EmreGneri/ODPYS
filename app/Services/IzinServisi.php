@@ -7,6 +7,7 @@ use App\Models\School;
 use App\Models\ScheduleEntry;
 use App\Models\Teacher;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 
 /**
  * Ogretmen izin talebini uretilmis program SABLONUYLA eslestirir.
@@ -23,6 +24,8 @@ use Carbon\Carbon;
  *   - sadece o tarihteki o ders saati etkileniyor, sonraki haftalar degil
  *   - "aslinda bu dersi kim veriyordu" bilgisi hic kaybolmuyor
  *
+ * Ayni fikir ders takasinda da surüyor (bkz. TakasServisi).
+ *
  * Bu sinif HTTP bilmiyor, dizi donduruyor.
  */
 class IzinServisi
@@ -36,6 +39,76 @@ class IzinServisi
         6 => 'Cumartesi',
         7 => 'Pazar',
     ];
+
+    // ─────────────────────────────────────────────────────────────
+    // Ortak cakisma mantigi
+    //
+    // Cakisma formulu eskiden bu dosyada iki ayri yerde tekrar
+    // ediyordu; takas ozelligiyle birlikte ucuncu bir kullanan daha
+    // cikinca tek yere toplandi. Formulun tek bir dogru tanimi olmali:
+    // birinde < obruinde <= kullanilsa iki ekran farkli sonuc verirdi.
+    // ─────────────────────────────────────────────────────────────
+
+    /**
+     * Verilen ogretmenlerin, belirtilen zaman araligiyla KESISEN
+     * onayli izinleri. Tek sorgu - cagiran taraf sonra bellekte
+     * kontrol ediyor, hucre basina sorgu atmiyor.
+     */
+    public function onayliIzinler(array $ogretmenIdleri, Carbon $baslangic, Carbon $bitis): Collection
+    {
+        if (empty($ogretmenIdleri)) {
+            return collect();
+        }
+
+        // Izin araliktan tasabilir (once baslayip sonra bitebilir),
+        // o yuzden kesisim kontrolu iki sinira da bakiyor.
+        return LeaveRequest::whereIn('teacher_id', $ogretmenIdleri)
+            ->where('status', 'approved')
+            ->where('starts_at', '<=', $bitis)
+            ->where('ends_at', '>=', $baslangic)
+            ->get();
+    }
+
+    /**
+     * Belirli bir ders saati, elimizdeki izinlerden birine denk
+     * geliyor mu? Geliyorsa o izni doner.
+     *
+     * Cakisma formulu: A.baslangic < B.bitis VE B.baslangic < A.bitis
+     * < kullaniyorum, <= degil: ders 08:40'ta bitip izin 08:40'ta
+     * basliyorsa sinir temasi var, cakisma yok.
+     */
+    public function cakisanIzin(
+        Collection $izinler,
+        int $ogretmenId,
+        Carbon $dersBaslangic,
+        Carbon $dersBitis
+    ): ?LeaveRequest {
+        foreach ($izinler as $izin) {
+            if ($izin->teacher_id !== $ogretmenId) {
+                continue;
+            }
+
+            if ($dersBaslangic->lt($izin->ends_at) && $izin->starts_at->lt($dersBitis)) {
+                return $izin;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Tek bir ogretmen/zaman icin izin kontrolu - kendi sorgusunu
+     * atiyor. Takas adayi degerlendirirken kullaniliyor (orada
+     * kontrol edilecek hucre sayisi az, toplu yuklemeye deger).
+     */
+    public function musaitMi(int $ogretmenId, Carbon $dersBaslangic, Carbon $dersBitis): bool
+    {
+        $izinler = $this->onayliIzinler([$ogretmenId], $dersBaslangic, $dersBitis);
+
+        return $this->cakisanIzin($izinler, $ogretmenId, $dersBaslangic, $dersBitis) === null;
+    }
+
+    // ─────────────────────────────────────────────────────────────
 
     /**
      * Bir izin talebinin hangi ders saatlerine denk geldigini bulur.
@@ -63,6 +136,7 @@ class IzinServisi
             return [];
         }
 
+        $izinler = collect([$izin]);
         $etkilenen = [];
         $gun = $izin->starts_at->copy()->startOfDay();
         $sonGun = $izin->ends_at->copy()->startOfDay();
@@ -92,11 +166,13 @@ class IzinServisi
                     $dersBaslangic = $gun->copy()->setTimeFromTimeString($saat['baslangic']);
                     $dersBitis = $gun->copy()->setTimeFromTimeString($saat['bitis']);
 
-                    // Cakisma formulu: A.baslangic < B.bitis VE B.baslangic < A.bitis
-                    // < kullaniyorum, <= degil: ders 08:40'ta bitip izin
-                    // 08:40'ta basliyorsa sinir temasi var, cakisma yok.
-                    if ($dersBaslangic->lt($izin->ends_at) && $izin->starts_at->lt($dersBitis)) {
+                    if ($this->cakisanIzin($izinler, $izin->teacher_id, $dersBaslangic, $dersBitis)) {
                         $etkilenen[] = [
+                            // Takas ekraninin ihtiyaci: hangi ders kaydi,
+                            // hangi tarih. ISO tarih makine icin, format
+                            // edilmis olan ekranda gosterilmek icin.
+                            'entryId' => $ders->id,
+                            'tarihIso' => $gun->toDateString(),
                             'tarih' => $gun->format('d.m.Y'),
                             'gunAdi' => self::GUN_ADLARI[$weekday] ?? '?',
                             'slot' => $ders->slot_no,
@@ -122,6 +198,12 @@ class IzinServisi
      * Belirli bir haftada, bir ogretmenin hangi hucrelerinin izinli
      * gorunmesi gerektigini bulur. Sartname 2.7.3 - cizelge gosterimi.
      *
+     * NOT: CizelgeServisi artik bunu kullanmiyor - takas ozelligiyle
+     * birlikte izin isaretlemesi "sablondaki yerine" degil "dersin
+     * GERCEKTE durdugu yere" gore yapilmak zorunda kaldi (takas dersi
+     * baska bir slota tasiyor). Bu metot, ogretmen paneli gibi takas
+     * uygulamayan basit gorunumler icin duruyor.
+     *
      * @param  Carbon  $haftaBasi  O haftanin Pazartesi'si
      * @return array   [weekday][slot_no] => izin bilgisi
      */
@@ -136,14 +218,7 @@ class IzinServisi
         $haftaBasi = $haftaBasi->copy()->startOfDay();
         $haftaSonu = $haftaBasi->copy()->addDays(6)->endOfDay();
 
-        // Bu haftayla KESISEN onayli izinler. Izin haftadan tasabilir
-        // (Persembe baslayip haftaya Pazartesi bitebilir), o yuzden
-        // sinir kontrolu starts_at/ends_at'in ikisine de bakiyor.
-        $izinler = LeaveRequest::where('teacher_id', $ogretmen->id)
-            ->where('status', 'approved')
-            ->where('starts_at', '<=', $haftaSonu)
-            ->where('ends_at', '>=', $haftaBasi)
-            ->get();
+        $izinler = $this->onayliIzinler([$ogretmen->id], $haftaBasi, $haftaSonu);
 
         if ($izinler->isEmpty()) {
             return [];
@@ -171,18 +246,18 @@ class IzinServisi
                     continue;
                 }
 
-                $dersBaslangic = $gun->copy()->setTimeFromTimeString($saat['baslangic']);
-                $dersBitis = $gun->copy()->setTimeFromTimeString($saat['bitis']);
+                $izin = $this->cakisanIzin(
+                    $izinler,
+                    $ogretmen->id,
+                    $gun->copy()->setTimeFromTimeString($saat['baslangic']),
+                    $gun->copy()->setTimeFromTimeString($saat['bitis'])
+                );
 
-                foreach ($izinler as $izin) {
-                    if ($dersBaslangic->lt($izin->ends_at) && $izin->starts_at->lt($dersBitis)) {
-                        $izinliHucreler[$weekday][$ders->slot_no] = [
-                            'tarih' => $gun->format('d.m.Y'),
-                            'sebep' => $izin->reason,
-                        ];
-
-                        break;
-                    }
+                if ($izin) {
+                    $izinliHucreler[$weekday][$ders->slot_no] = [
+                        'tarih' => $gun->format('d.m.Y'),
+                        'sebep' => $izin->reason,
+                    ];
                 }
             }
         }

@@ -124,5 +124,11 @@ Route::middleware(['auth:sanctum', 'aktifokul'])->group(function () {
         Route::get('/izinler/{izin}', [ApiIzinController::class, 'goster']);
         Route::post('/izinler/{izin}/onayla', [ApiIzinController::class, 'onayla']);
         Route::post('/izinler/{izin}/reddet', [ApiIzinController::class, 'reddet']);
+
+        // Ders takasi - izin yuzunden bosalan dersin ayni gun icinde
+        // baska bir ders saatiyle yer degistirmesi (bkz. TakasServisi).
+        Route::get('/izinler/{izin}/takas-adaylari', [ApiIzinController::class, 'takasAdaylari']);
+        Route::post('/izinler/{izin}/takas', [ApiIzinController::class, 'takasYap']);
+        Route::delete('/izinler/{izin}/takas/{takas}', [ApiIzinController::class, 'takasGeriAl']);
     });
 });

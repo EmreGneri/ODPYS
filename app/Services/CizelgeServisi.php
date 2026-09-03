@@ -10,6 +10,7 @@ use App\Models\Section;
 use App\Models\Teacher;
 use App\Models\TeacherCourseLevel;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -35,8 +36,112 @@ class CizelgeServisi
         7 => 'Pazar',
     ];
 
-    public function __construct(private IzinServisi $izinServisi)
-    {
+    public function __construct(
+        private IzinServisi $izinServisi,
+        private TakasServisi $takasServisi
+    ) {
+    }
+
+    /**
+     * Izgaranin hucrelerini kurar: takaslari uygular, sonra izin
+     * isaretlemesini yapar.
+     *
+     * ONEMLI - SIRA: once TAKAS uygulanip dersin o hafta GERCEKTE
+     * hangi slotta durdugu bulunuyor, izin kontrolu ondan SONRA
+     * yapiliyor. Ters sirada olsaydi takasla kurtarilmis bir ders hala
+     * "izinli" gorunurdu; yani takas ekranda hicbir sey degistirmemis
+     * gibi olurdu.
+     *
+     * Iki gorunum (sube / ogretmen) hucrenin ust-alt metnini farkli
+     * kuruyor, o yuzden bicimlendirme disaridan closure olarak geliyor.
+     *
+     * @param  callable  $bicimlendir  ScheduleEntry -> ['ust' => .., 'alt' => ..]
+     */
+    private function hucreleriKur(
+        ?School $okul,
+        Collection $kayitlar,
+        Carbon $haftaBasi,
+        callable $bicimlendir
+    ): array {
+        if (! $okul) {
+            return [];
+        }
+
+        // pozisyon => o hafta orada GERCEKTE duran ders
+        $yerlesim = [];
+
+        foreach ($kayitlar as $k) {
+            $yerlesim[$k->weekday][$k->slot_no] = ['kayit' => $k, 'takas' => null];
+        }
+
+        foreach ($this->takasServisi->haftaninTakaslari($haftaBasi) as $takas) {
+            $a = $takas->entryA;
+            $b = $takas->entryB;
+
+            if (! $a || ! $b) {
+                continue;
+            }
+
+            // Bu izgarada hangi taraflar var? Sube gorunumunde ikisi de
+            // (takas ayni sube icinde kaliyor), ogretmen gorunumunde
+            // genelde sadece biri - o zaman ders obur pozisyona TASINIYOR
+            // ve eski pozisyonu bosaliyor.
+            $aBizde = $kayitlar->contains('id', $a->id);
+            $bBizde = $kayitlar->contains('id', $b->id);
+
+            if (! $aBizde && ! $bBizde) {
+                continue;
+            }
+
+            unset($yerlesim[$a->weekday][$a->slot_no], $yerlesim[$b->weekday][$b->slot_no]);
+
+            if ($aBizde) {
+                $yerlesim[$b->weekday][$b->slot_no] = ['kayit' => $a, 'takas' => $takas];
+            }
+
+            if ($bBizde) {
+                $yerlesim[$a->weekday][$a->slot_no] = ['kayit' => $b, 'takas' => $takas];
+            }
+        }
+
+        $izinler = $this->izinServisi->onayliIzinler(
+            $kayitlar->pluck('teacher_id')->filter()->unique()->all(),
+            $haftaBasi->copy()->startOfDay(),
+            $haftaBasi->copy()->addDays(6)->endOfDay()
+        );
+
+        $izgara = [];
+
+        foreach ($yerlesim as $weekday => $slotlar) {
+            // haftaBasi Pazartesi (dayOfWeekIso = 1), yani weekday 1 => +0 gun.
+            $gun = $haftaBasi->copy()->addDays($weekday - 1);
+            $slotSaatleri = $okul->slotSaatleri($weekday);
+
+            foreach ($slotlar as $slotNo => $hucre) {
+                $k = $hucre['kayit'];
+                $saat = $slotSaatleri[$slotNo] ?? null;
+
+                $izin = ($saat && $k->teacher_id)
+                    ? $this->izinServisi->cakisanIzin(
+                        $izinler,
+                        $k->teacher_id,
+                        $gun->copy()->setTimeFromTimeString($saat['baslangic']),
+                        $gun->copy()->setTimeFromTimeString($saat['bitis'])
+                    )
+                    : null;
+
+                $izgara[$weekday][$slotNo] = $bicimlendir($k) + [
+                    'izinli' => (bool) $izin,
+                    'izinSebep' => $izin?->reason,
+                    'takasli' => (bool) $hucre['takas'],
+                    'takasNot' => $hucre['takas']
+                        ? 'Öğretmen izni nedeniyle ders saati değişti (normalde ' . $k->slot_no . '. ders).'
+                        : null,
+                ];
+            }
+        }
+
+        return $izgara;
     }
 
     /**
@@ -58,38 +163,15 @@ class CizelgeServisi
             ->where('section_id', $sube->id)
             ->get();
 
-        // Subede birden fazla ogretmen ders verebilir - her biri icin
-        // ayri ayri izinliHucreler soruyorum, sonra SADECE bu subedeki
-        // kendi hucresine denk gelenleri isaretliyorum (baska bir subede
-        // ayni saatte ders veriyor olmasi bu subeyi etkilememeli).
-        $izinliHucreler = [];
-
-        foreach ($kayitlar->pluck('teacher')->filter()->unique('id') as $hocaAday) {
-            foreach ($this->izinServisi->haftaninIzinleri($hocaAday, $haftaBasi) as $weekday => $slotlar) {
-                foreach ($slotlar as $slotNo => $izin) {
-                    $buHucre = $kayitlar->first(
-                        fn ($k) => $k->weekday === $weekday && $k->slot_no === $slotNo && $k->teacher_id === $hocaAday->id
-                    );
-
-                    if ($buHucre) {
-                        $izinliHucreler[$weekday][$slotNo] = $izin;
-                    }
-                }
-            }
-        }
-
-        $izgara = [];
-
-        foreach ($kayitlar as $k) {
-            $izgara[$k->weekday][$k->slot_no] = [
-                'ust' => $k->course->name ?? '?',
-                'alt' => $k->teacher
-                    ? $k->teacher->first_name . ' ' . $k->teacher->last_name
-                    : '?',
-                'izinli' => isset($izinliHucreler[$k->weekday][$k->slot_no]),
-                'izinSebep' => $izinliHucreler[$k->weekday][$k->slot_no]['sebep'] ?? null,
-            ];
-        }
+        // Takas uygulama ve izin isaretlemesi hucreleriKur()'da -
+        // ogretmen cizelgesiyle ortak, cunku ikisi de ayni kurallara
+        // tabi (bkz. o metodun docblock'u).
+        $izgara = $this->hucreleriKur($okul, $kayitlar, $haftaBasi, fn ($k) => [
+            'ust' => $k->course->name ?? '?',
+            'alt' => $k->teacher
+                ? $k->teacher->first_name . ' ' . $k->teacher->last_name
+                : '?',
+        ]);
 
         return $this->izgarayaCevir($okul, $izgara) + [
             'baslik' => $sube->name . ' Şubesi',
@@ -114,21 +196,10 @@ class CizelgeServisi
             ->where('teacher_id', $ogretmen->id)
             ->get();
 
-        // haftaninIzinleri zaten sadece BU ogretmenin dersleriyle
-        // cakisan hucreleri donduruyor (kendi ic sorgusu teacher_id'ye
-        // gore filtreli) - ek bir eslestirmeye gerek yok.
-        $izinliHucreler = $this->izinServisi->haftaninIzinleri($ogretmen, $haftaBasi);
-
-        $izgara = [];
-
-        foreach ($kayitlar as $k) {
-            $izgara[$k->weekday][$k->slot_no] = [
-                'ust' => $k->course->name ?? '?',
-                'alt' => ($k->section->name ?? '?') . ' · ' . ($k->room->name ?? '?'),
-                'izinli' => isset($izinliHucreler[$k->weekday][$k->slot_no]),
-                'izinSebep' => $izinliHucreler[$k->weekday][$k->slot_no]['sebep'] ?? null,
-            ];
-        }
+        $izgara = $this->hucreleriKur($okul, $kayitlar, $haftaBasi, fn ($k) => [
+            'ust' => $k->course->name ?? '?',
+            'alt' => ($k->section->name ?? '?') . ' · ' . ($k->room->name ?? '?'),
+        ]);
 
         return $this->izgarayaCevir($okul, $izgara) + [
             'baslik' => $ogretmen->first_name . ' ' . $ogretmen->last_name,

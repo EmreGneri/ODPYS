@@ -28,3 +28,6 @@ Thumbs.db
 
 # Veritabani yedekleri - hassas veri (sifre hash'leri vb.) icerir, asla commit edilmemeli
 /yedekler
+
+# .env yedekleri - APP_KEY, veritabani ve mail sifreleri icerir
+.env.yedek*

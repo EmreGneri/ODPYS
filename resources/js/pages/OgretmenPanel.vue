@@ -85,20 +85,30 @@ onMounted(async () => {
                                             <div class="font-medium text-gray-700">{{ slot }}. ders</div>
                                         </td>
                                         <td v-for="(gunAdi, gunNo) in veri.gunler" :key="gunNo" class="px-3 py-2 align-top">
+                                            <!-- Renkler cizelge ekraniyla ayni: kirmizi =
+                                                 izinli, sari = takasla saati degismis,
+                                                 gri = normal. -->
                                             <div v-if="veri.izgara[gunNo]?.[slot]"
                                                  class="rounded border px-2 py-1.5"
                                                  :class="veri.izgara[gunNo][slot].izinli
-                                                    ? 'border-amber-300 bg-amber-50'
-                                                    : 'border-gray-200 bg-gray-50'">
+                                                    ? 'border-red-300 bg-red-50'
+                                                    : (veri.izgara[gunNo][slot].takasli
+                                                        ? 'border-amber-300 bg-amber-50'
+                                                        : 'border-gray-200 bg-gray-50')">
                                                 <template v-if="veri.izgara[gunNo][slot].izinli">
-                                                    <div class="text-xs font-medium text-amber-800">İzinli</div>
-                                                    <div class="text-xs text-amber-700">
+                                                    <div class="text-xs font-medium text-red-800">İzinli</div>
+                                                    <div class="text-xs text-red-700">
                                                         Normalde: {{ veri.izgara[gunNo][slot].ust }} · {{ veri.izgara[gunNo][slot].alt }}
                                                     </div>
                                                 </template>
                                                 <template v-else>
                                                     <div class="font-medium text-gray-800">{{ veri.izgara[gunNo][slot].ust }}</div>
                                                     <div class="text-xs text-gray-500">{{ veri.izgara[gunNo][slot].alt }}</div>
+
+                                                    <div v-if="veri.izgara[gunNo][slot].takasli"
+                                                         class="mt-1 text-xs text-amber-800">
+                                                        {{ veri.izgara[gunNo][slot].takasNot }}
+                                                    </div>
                                                 </template>
                                                 <div class="text-xs text-gray-400 tabular-nums mt-0.5">
                                                     {{ veri.saatler[gunNo]?.[slot]?.baslangic }}-{{ veri.saatler[gunNo]?.[slot]?.bitis }}
