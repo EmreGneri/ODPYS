@@ -178,6 +178,15 @@ const routes = [
         component: () => import('./pages/Profil.vue'),
         meta: { auth: true },
     },
+    {
+        // Sartname 3.4 - "Nasil Kullanilir". meta.role YOK ama sayfanin
+        // KENDISI role gore farkli icerik gosteriyor (yonetici kurulum
+        // sirasini, ogretmen sadece kendi iki ekranini).
+        path: '/app/nasil-kullanilir',
+        name: 'nasil-kullanilir',
+        component: () => import('./pages/NasilKullanilir.vue'),
+        meta: { auth: true },
+    },
 
     // ───── /app: role gore dogru anasayfaya yonlendir ─────
     // Burada 'redirect' KULLANMIYORUM: Vue Router'da redirect, guard'dan

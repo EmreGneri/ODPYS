@@ -74,6 +74,21 @@ async function cikisYap() {
                     </div>
 
                     <div class="flex items-center gap-4 shrink-0 pl-4">
+                        <!-- Ana menuye DEGIL buraya konuldu: yonetici menusu
+                             zaten 12 ogeyle dolu, 13.'su onu tasirirdi.
+                             Yardim, profil gibi "hesap/destek" tarafina ait. -->
+                        <router-link
+                            :to="{ name: 'nasil-kullanilir' }"
+                            class="flex h-7 w-7 items-center justify-center rounded-full border text-sm transition"
+                            :class="$route.name === 'nasil-kullanilir'
+                                ? 'border-gray-800 text-gray-900'
+                                : 'border-gray-300 text-gray-500 hover:border-gray-500 hover:text-gray-800'"
+                            title="Nasıl kullanılır?"
+                            aria-label="Nasıl kullanılır?"
+                        >
+                            ?
+                        </router-link>
+
                         <router-link
                             :to="{ name: 'profil' }"
                             class="flex items-center gap-2 text-sm transition"
