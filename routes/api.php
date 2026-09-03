@@ -26,11 +26,29 @@ use Illuminate\Support\Facades\Route;
  * <token>" basligiyla kimlik kanitliyor - tarayici oturum cerezi
  * (cookie) YOK, stateless.
  */
-Route::post('/login', [AuthController::class, 'login']);
+// KABA KUVVET KORUMASI - iki katman:
+//
+//   1. Buradaki throttle middleware'i IP bazli calisiyor: bir
+//      adresten dakikada kac istek gelebilecegini sinirliyor, yani
+//      uc noktanin dovulmesini engelliyor.
+//   2. AuthController icindeki RateLimiter ise KIMLIK bazli:
+//      e-posta+IP anahtariyla, tek bir hesaba yapilan sifre
+//      denemelerini 5'te durduruyor.
+//
+// Ikisi farkli seyi koruyor, biri digerinin yerini tutmuyor: sadece
+// IP sinirlamasi olsaydi saldirgan farkli IP'lerden ayni hesaba
+// saldirabilirdi; sadece kimlik sinirlamasi olsaydi rastgele
+// e-postalarla uc noktayi yine dovebilirdi.
+Route::post('/login', [AuthController::class, 'login'])
+    ->middleware('throttle:10,1');
 
 // Sifre sifirlama - giris yapmamis kullanicilar icin, guest.
-Route::post('/forgot-password', [ApiPasswordController::class, 'forgot']);
-Route::post('/reset-password', [ApiPasswordController::class, 'reset']);
+// Bunlar e-POSTA GONDERIYOR: sinirsiz birakilirsa hem posta kotasi
+// tuketilir hem de bir kullaniciya spam gonderilebilir.
+Route::post('/forgot-password', [ApiPasswordController::class, 'forgot'])
+    ->middleware('throttle:6,1');
+Route::post('/reset-password', [ApiPasswordController::class, 'reset'])
+    ->middleware('throttle:6,1');
 
 Route::middleware(['auth:sanctum', 'aktifokul'])->group(function () {
     Route::get('/user', function (Request $request) {
