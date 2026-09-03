@@ -132,3 +132,26 @@ Route::get('/app/{any?}', fn () => view('spa'))
     ->name('spa');
 
 require __DIR__.'/auth.php';
+
+// ───── API dokümanı (Swagger UI) ─────
+//
+// Doküman yönetici girişinin ARKASINDA: API'nin bütün yüzeyini
+// (hangi uç noktalar var, hangi alanları bekliyor) herkese açmaya
+// gerek yok. Uç noktaların kendisi zaten korumalı, ama yapıyı
+// gereksiz yere yayınlamamak daha doğru.
+//
+// openapi.json da bu yüzden public/ altında değil storage/ altında
+// duruyor - public'te olsaydı web sunucusu onu yetki kontrolü
+// olmadan doğrudan servis ederdi.
+Route::middleware(['auth', 'admin'])->group(function () {
+    Route::get('/api-dokuman', fn () => view('api-dokuman'))
+        ->name('api-dokuman');
+
+    Route::get('/api-dokuman/openapi.json', function () {
+        $yol = storage_path('app/openapi.json');
+
+        abort_unless(file_exists($yol), 404, 'Doküman henüz üretilmemiş: php artisan api:dokuman');
+
+        return response()->file($yol, ['Content-Type' => 'application/json']);
+    })->name('api-dokuman.json');
+});
