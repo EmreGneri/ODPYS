@@ -19,11 +19,22 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // ROL: 'admin' DEGIL 'superadmin'.
+        //
+        // 2026_09_03_140000 migration'i yonetici rolunu ikiye boldu:
+        //   superadmin -> butun okullar, school_id NULL
+        //   admin      -> SADECE school_id'sindeki okul
+        //
+        // O migration mevcut kayitlari cevirdi ama seeder YENI kayit
+        // uretiyor. 'admin' yazsaydik hesap "okula bagli yonetici"
+        // sayilir, school_id bos oldugu icin School::aktif() null
+        // doner ve EnsureAktifOkul her istegi 403 ile keserdi - taze
+        // bir "migrate:fresh --seed" sonrasi sisteme hic girilemezdi.
         User::create([
             'name' => 'Sistem Yöneticisi',
             'email' => 'admin@okul.edu.tr',
             'password' => 'password',
-            'role' => 'admin',
+            'role' => 'superadmin',
         ]);
         // --- Okul ---
 
