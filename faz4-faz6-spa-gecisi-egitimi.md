@@ -1,12 +1,13 @@
-# Faz 4 + Faz 6: Tüm Ekranların SPA'ya Taşınması ve Geçişin Tamamlanması — Eğitim + Uygulama
+# Faz 4 + Faz 5 + Faz 6: Ekranların SPA'ya Taşınması, Dosya Yükleme ve Paralel Geçiş — Eğitim + Uygulama
 
-Bu doküman iki fazı birden anlatıyor:
-- **Faz 4** — planın en büyük fazı: 20 Vue sayfası + ortak bir düzen (layout) bileşeni.
-- **Faz 6** — geçişin aktifleştirilmesi: SPA'nın varsayılan arayüz olması, eski sistemin yedekte kalması.
+Bu doküman üç fazı birlikte anlatıyor:
+- **Faz 4** — planın en büyük fazı: uygulama ekranlarının Vue sayfalarına taşınması ve ortak bir düzen (layout) bileşeniyle birleştirilmesi.
+- **Faz 5** — öğretmen fotoğrafı ve CV gibi dosyaların SPA üzerinden yüklenmesi ve gösterilmesi.
+- **Faz 6** — geçişin aktifleştirilmesi: SPA'nın varsayılan arayüz olması, eski sistemin doğrulama ve geri dönüş amacıyla yedekte kalması.
 
 Kullanılan her kavramı sıfırdan açıklıyor, sonra her ekranın nasıl yazıldığını dosya yollarıyla gösteriyor.
 
-> **Faz 5 nerede?** Planda ayrı bir madde olan "dosya yükleme" (öğretmen fotoğraf/CV), Faz 4'te `Ogretmenler.vue` yazılırken doğal olarak içinde halloldu — öğretmen formunun kendisi zaten o alanları içeriyordu, ayrı bir faza bölmek yapay olurdu. Kodu ve sonradan bulunan bir eksiğin (yüklenen dosyanın gösterilmemesi) düzeltilmesi bu dokümanın **5. bölümünde**.
+> **Faz 5 neden ayrı bir ana bölüm gibi ilerlemiyor?** Plandaki "dosya yükleme" işi (öğretmen fotoğraf/CV), Faz 4'te `Ogretmenler.vue` yazılırken aynı form akışının içinde uygulandı. Yine de ayrı bir fazın sorumluluğudur; kodu ve sonradan bulunan gösterim eksiğinin düzeltilmesi bu dokümanın **5. bölümünde** ayrıntılı biçimde anlatılıyor.
 
 ---
 
@@ -14,7 +15,7 @@ Kullanılan her kavramı sıfırdan açıklıyor, sonra her ekranın nasıl yaz�
 
 Faz 0-3'te **temel** kurulmuştu: API hazır, kimlik doğrulama çalışıyor, router/state/HTTP altyapısı ayakta. Ama gerçek ekranlar (Seviyeler, Dersler, Program, Çizelge...) hâlâ sadece eski Blade tarafında vardı.
 
-Faz 4, o ekranların **hepsini** Vue'ya taşıdı. Önemli olan şu: **tasarım tarafında hiçbir yeni karar verilmedi.** Her Vue sayfası, karşılığı olan Blade dosyasının HTML/Tailwind yapısını referans alıp aynı görünümü üretiyor. Yani "nasıl görünmeli" sorusunun cevabı zaten yazılıydı, biz sadece "veriyi nereden alıyor" kısmını değiştirdik:
+Faz 4, uygulama ekranlarını Vue'ya taşıdı. İlk dönüşümde temel ilke, karşılığı olan Blade dosyasının HTML/Tailwind yapısını referans almak ve davranış eşliğini korumaktı. Daha sonra gerçek kullanımda bulunan ihtiyaçlar için giriş tasarımı, profil ve kayıtlar arası gezinme gibi iyileştirmeler yapıldı; bunlar 12–15. bölümlerde ayrıca anlatılıyor. Temel veri akışı değişimi şöyledir:
 
 ```
 ESKİ (Blade):  Controller → view('seviyeler.index', ['seviyeler' => ...]) → sunucuda HTML üretilir
@@ -80,7 +81,7 @@ const ogretmenMenu = [
   </Layout>
   ```
 - **`defineProps`** — bileşenin dışarıdan alacağı değerleri tanımlar. `baslik` burada bir prop, Blade'in `<x-slot name="header">` yapısının karşılığı.
-- **`v-for` + `:key`** — Blade'deki `@foreach`'in Vue karşılığı. `:key` zorunlu: Vue'nun listedeki hangi öğenin hangisi olduğunu takip etmesi için (liste değişince gereksiz yeniden çizim yapmasın diye).
+- **`v-for` + `:key`** — Blade'deki `@foreach`'in Vue karşılığı. `:key`, özellikle sırası değişebilen veya kendi form/DOM durumunu taşıyan listelerde Vue'nun öğe kimliğini doğru koruması için gereklidir. Basit listeler bazı durumlarda `key` olmadan da çizilebilir; fakat kararlı ve tahmin edilebilir güncelleme için benzersiz bir `key` kullanmak doğru pratiktir.
 - **`$route.name === oge.rota`** — aktif menü öğesini vurgulamak için. Blade'de `request()->routeIs('seviyeler.*')` ile yapılan şeyin aynısı.
 - **`auth.rol === 'admin' ? ... : ...`** — rol bazlı menü, Blade'deki `@if (auth()->user()->role === 'admin')` bloğunun karşılığı.
 
@@ -142,7 +143,7 @@ onMounted(yukle);
 
 - **`ref()`** — Vue'da "değişince ekranı güncelle" özelliği olan bir değişken. Normal bir JS değişkeni değiştiğinde ekran güncellenmez; `ref` ile sarılınca Vue değişikliği fark eder ve o değişkeni kullanan her yeri otomatik yeniden çizer. `<script>` içinde değerine `.value` ile erişilir (`seviyeler.value`), `<template>` içinde ise doğrudan (`seviyeler`) — Vue bunu otomatik açar.
 - **`onMounted(yukle)`** — "bileşen ekrana yerleştiği anda şu fonksiyonu çalıştır". Sayfa açılır açılmaz veriyi çeken kanca (lifecycle hook) budur.
-- **`async/await`** — API çağrıları anında sonuçlanmaz (ağ gecikmesi). `await`, "cevap gelene kadar burada bekle, sonra devam et" demek. `async`, içinde `await` kullanılan fonksiyonun işaretidir.
+- **`async/await`** — API çağrıları anında sonuçlanmaz (ağ gecikmesi). `await`, yalnızca içinde bulunduğu `async` fonksiyonun devamını Promise sonuçlanana kadar erteler; tarayıcının arayüz iş parçacığını kilitleyip bütün sayfayı bekletmez. `async`, fonksiyonun Promise döndürdüğünü ve içinde `await` kullanılabildiğini belirtir.
 - **`const { data } = await api.get(...)`** — bu bir "destructuring": axios'un döndürdüğü cevap nesnesinin içinden sadece `data` alanını çıkarıyor. Cevapta ayrıca `status`, `headers` gibi alanlar da var ama bize sadece veri lazım.
 - **`try/catch`** — hata yakalama. API 422 (doğrulama hatası) dönerse axios bir "hata" fırlatır, `catch` bloğu onu yakalayıp kullanıcıya gösteriyor.
 - **`seviye?.id ?? null`** — iki güvenlik operatörü: `?.` ("seviye null ise patlama, undefined dön"), `??` ("soldaki null/undefined ise sağdakini kullan"). Blade'deki `$seviye?->id ?? null` ile birebir aynı mantık.
@@ -222,7 +223,7 @@ Bu, eski `OgretmenDersleriFormu.vue` bileşenindeki mantığın aynısı — o d
 
 ## 5. Dosya Yükleme: `FormData` ve Method Spoofing
 
-Öğretmen formunda fotoğraf ve CV yükleniyor. Dosya, JSON içine konulamaz — `FormData` kullanılıyor.
+Öğretmen formunda fotoğraf ve CV yükleniyor. Bir `File` nesnesi normal JSON gövdesine doğrudan dosya içeriği olarak eklenmez; metin alanlarıyla ikili dosyaları aynı istekte taşımak için `FormData` ve `multipart/form-data` kullanılır.
 
 **Dosya: `resources/js/pages/Ogretmenler.vue`**
 
@@ -243,7 +244,9 @@ if (duzenlenenId.value) {
 }
 ```
 
-**Neden `POST` + `_method=PUT`, doğrudan `PUT` değil?** Tarayıcılar dosya içeriğini `PUT` isteğiyle native olarak göndermiyor. Laravel'in çözümü **method spoofing**: isteği `POST` olarak yolla, gövdeye `_method=PUT` alanını ekle — Laravel bunu görüp isteği `PUT` gibi işliyor. Blade formlarındaki `@method('PUT')` direktifi tam olarak bu gizli alanı basıyordu; burada elle ekliyoruz.
+**Neden `POST` + `_method=PUT`, doğrudan `PUT` değil?** `fetch` ve axios teknik olarak `PUT` isteğiyle `FormData` gönderebilir. Sorun HTTP metodunun bunu yasaklaması değil; PHP/Laravel tarafında `multipart/form-data` gövdelerinin `POST` dışındaki metodlarda ayrıştırılması, kullanılan sunucu ve PHP istek işleme hattına göre sorun çıkarabilir. Laravel projelerinde güvenilir ve yaygın çözüm **method spoofing** kullanmaktır: istek `POST` gönderilir, gövdeye `_method=PUT` eklenir ve Laravel bunu uygulama seviyesinde `PUT` olarak işler. Blade formlarındaki `@method('PUT')` direktifi de aynı gizli alanı üretir.
+
+**`Content-Type` neden kodda elle yazılmıyor?** `FormData` gönderilirken axios/tarayıcı `multipart/form-data` başlığını ve zorunlu `boundary` değerini birlikte üretir. Başlığı elle yalnızca `multipart/form-data` diye yazmak, `boundary` bilgisini bozabileceği için gereksiz ve risklidir.
 
 ### Sonradan fark edilen eksik: yüklenen dosyanın gösterilmesi
 
@@ -301,7 +304,7 @@ function fotografSecildi(olay) {
 ```
 
 - **`URL.createObjectURL(dosya)`** — tarayıcının, seçilen dosya için ürettiği geçici yerel adres (`blob:http://...`). Sunucuya hiç gitmeden `<img src>` içinde kullanılabiliyor.
-- **`URL.revokeObjectURL(...)`** — bu geçici adresler tarayıcı belleğinde tutulur ve **otomatik temizlenmez**. Kullanıcı üst üste 10 fotoğraf seçerse 10 kopya bellekte kalırdı. Eskisini serbest bırakmak, bu sızıntıyı önlüyor.
+- **`URL.revokeObjectURL(...)`** — nesne URL'si artık kullanılmayınca tarayıcıya ilişkili kaynağın serbest bırakılabileceğini bildirir. Belge tamamen kapandığında tarayıcı bu kaynakları temizler; ancak uzun süre açık kalan bir SPA'da kullanıcı art arda dosya seçerse eski URL'leri erken serbest bırakmak gereksiz bellek kullanımını önler. Buradaki kod, yeni seçim yapılırken önceki önizleme URL'sini serbest bırakıyor.
 
 Şablon tarafında: yeni seçim varsa **onu**, yoksa sunucudaki mevcut fotoğrafı gösteriyor:
 
@@ -337,11 +340,12 @@ Fotoğrafı olmayan için baş harfler (Blade'deki desen). CV linki ise **ayrı 
 Bu tek bileşen **iki rotayı** birden karşılıyor (şube çizelgesi ve öğretmen çizelgesi) — tıpkı Blade'de tek `izgara.blade.php`'nin iki ekranı basması gibi.
 
 ```js
-// 'sube' ya da 'ogretmen' - rota adindan cikariyoruz
-const tur = () => (route.name === 'cizelge-sube' ? 'sube' : 'ogretmen');
+// 'sube' ya da 'ogretmen' - rota adindan cikariyoruz.
+// computed kullanildigi icin rota degisince deger de otomatik yenilenir.
+const tur = computed(() => (route.name === 'cizelge-sube' ? 'sube' : 'ogretmen'));
 
 async function yukle() {
-    const { data } = await api.get(`/cizelge/${tur()}/${route.params.id}`);
+    const { data } = await api.get(`/cizelge/${tur.value}/${route.params.id}`);
     veri.value = data;
 }
 
@@ -375,14 +379,16 @@ Izgara çizimi, Blade'deki iç içe `@foreach` yapısının aynısı:
 **PDF/Excel indirme linkleri** — burada özel bir şey yapmaya gerek yok:
 
 ```vue
-<a :href="`/cizelge/${tur()}/${route.params.id}/pdf`">PDF indir</a>
+<a :href="`/cizelge/${tur}/${route.params.id}/pdf`">PDF indir</a>
 ```
 
 Çünkü SPA **çerez** tabanlı kimlik doğrulama kullanıyor (Faz 2): tarayıcı bu düz linke gittiğinde oturum çerezini otomatik gönderiyor, mevcut web rotası çalışıyor. (Token tabanlı bir mimaride bu bir sorun olurdu — token linkte taşınamazdı.)
 
 ---
 
-## 7. Router: 24 Rota ve Rol Koruması
+## 7. Router: Güncel Rotalar ve Rol Koruması
+
+Bu bölüm ilk yazıldığında router'da 24 rota vardı. Profil, şifre sıfırlama, yük raporu ve sonraki ekranlar eklendikçe sayı değişti; güncel `resources/js/router.js` dosyasında **27 rota kaydı** bulunuyor. Burada önemli olan sabit sayı değil, her rotanın doğru bileşene ve gereken `meta.auth` / `meta.role` bilgisine bağlanmasıdır.
 
 **Dosya: `resources/js/router.js`**
 
@@ -444,7 +450,7 @@ Ardından `php artisan config:clear`. Bu, SPA'ya hangi adreslerden erişilebilec
 
 ## 9. Uçtan Uca Doğrulama
 
-Gerçek tarayıcıda, gerçek veriyle test edildi:
+Aşağıdaki sonuçlar, geliştirme sırasında gerçek tarayıcı ve o tarihteki gerçek test verisiyle yapılan doğrulamanın kaydıdır. İsimler ve sayılar kalıcı sistem sabitleri değil, test anındaki veri kümesinin sonuçlarıdır:
 
 | Test | Sonuç |
 |---|---|
@@ -457,7 +463,8 @@ Gerçek tarayıcıda, gerçek veriyle test edildi:
 | Ücretler | 832.000 TL toplam, Ahmet Ayverdi 32.000 TL/ay — API testindeki rakamlarla birebir aynı |
 | Çizelge ızgarası | 9A şubesi, 32 ders saati, "Düzenle" linkleri, PDF/Excel bağlantıları |
 | 13 admin API uç noktası | Hepsi 200 |
-| `npm run build` | 21 sayfa ayrı lazy-loaded paket olarak derlendi |
+| 40 sınıf / 100 öğretmen performans senaryosu | Test çalıştırıldı; ölçülen kesin süre bu dokümana kaydedilmediği için burada uydurma bir milisaniye değeri verilmiyor |
+| `npm run build` | O testteki kod durumunda 21 lazy-loaded sayfa paketi derlendi; sonraki eklemeler nedeniyle güncel kaynak dosyası sayısı daha yüksektir |
 
 **Test yöntemi notu:** Yönetici şifresini bilmediğim için, test öncesi admin'in şifre hash'ini bir dosyaya yedekleyip geçici bir şifre atadım; test bitince **orijinal hash'i aynen geri yazdım** ve geri yüklendiğini doğruladım. Yani hesabın şifresi değişmedi.
 
@@ -517,7 +524,7 @@ Faz 4 bitince ortada **iki çalışan sistem** vardı: eski Blade (`/seviyeler`,
 |---|---|
 | 1. SPA `/app` altında yayına alınır, eski sistem dokunulmadan çalışır | Faz 2'de yapıldı |
 | 2. Linkler SPA'ya yönlendirilir | **Bu fazda yapıldı** |
-| 3. Gerçek kullanıcıyla test edilene kadar eski sistem canlı kalır | **Şu an buradayız** |
+| 3. Gerçek kullanıcıyla test edilene kadar eski sistem canlı kalır | Testler yapıldı; klasik sistem son kabul/temizlik kararına kadar yedek olarak tutuluyor |
 | 4. Eski Blade rotaları/görünümleri silinir | **Henüz yapılmadı** (bilinçli) |
 
 ### Ne değişti
@@ -570,7 +577,7 @@ Amacı, planın 3. adımını (**yan yana karşılaştırma**) kolaylaştırmak:
 
 Plan, silme adımını açıkça şu koşula bağlamış: *"Tüm sayfalar dönüşüp gerçek kullanıcıyla test edilene kadar eski Blade sistemi canlı ve kullanılabilir kalır — bir şey ters giderse anında eskiye dönülebilir."*
 
-Ben (Claude) SPA'yı test ettim, ama **sen henüz gerçek kullanımda denemedin.** Teslim tarihi yakınken çalışan bir sistemi silmek gereksiz bir risk. Silme yapıldığında da şunlar **silinmeyecek**: `FormRequest` sınıfları ve `Services/` altındaki servisler — API onları kullanmaya devam ediyor.
+SPA üzerinde işlevsel, uçtan uca ve 40 sınıf / 100 öğretmenlik performans senaryosu testleri yapıldı. Buna rağmen çalışan klasik sistemi kaldırmak, geri dönüş yolunu kapatan ayrı bir temizlik kararıdır. Bu yüzden eski Blade tarafı son kabul ve kaldırma kararı verilene kadar yedek olarak tutuluyor. Silme yapıldığında da `FormRequest` sınıfları ve `Services/` altındaki servisler **silinmeyecek**; API bunları kullanmaya devam ediyor.
 
 ### Faz 6 doğrulaması
 
@@ -640,7 +647,7 @@ npm run build
 
 ## 13. Giriş Ekranlarının Yeniden Tasarımı
 
-Tailwind hatası düzeltilince kart zaten doğru ortalandı, ama bu fırsatla giriş akışının **görünümü** de iyileştirildi — planın "tasarım Claude'un işi değil, hazır Blade'i referans al" ilkesine göre değil, çünkü giriş ekranının Blade'de zaten sade bir karşılığı vardı ve burada senin "göze güzel gelmiyor" geri bildirimin vardı.
+Tailwind hatası düzeltilince kart doğru ortalandı; ardından gerçek kullanım geri bildirimiyle giriş akışının **görünümü** de iyileştirildi. Bu, ilk dönüşümdeki "hazır Blade görünümünü referans al" ilkesinin ötesine geçen bilinçli bir tasarım iyileştirmesidir.
 
 ### Ortak kabuk: `GirisKarti.vue`
 
