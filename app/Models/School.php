@@ -5,6 +5,7 @@ namespace App\Models;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Auth;
 
 class School extends Model
 {
@@ -46,7 +47,8 @@ class School extends Model
         // auth() CLI'da (tinker, migration, seeder) null doner; o
         // durumda asagidaki eski davranis gecerli kalir.
         // ─────────────────────────────────────────────────────────
-        $kullanici = auth()->user();
+        /** @var \App\Models\User|null $kullanici */
+            $kullanici = Auth::user();
 
         if ($kullanici?->okulaBagliYoneticiMi()) {
             // school_id null olabilir (okulu silinmis yonetici) - find(null)
