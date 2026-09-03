@@ -17,7 +17,7 @@ import { useAuthStore } from '../stores/auth';
  * commit'te guncelleniyor.
  */
 const auth = useAuthStore();
-const yonetici = computed(() => auth.rol === 'admin');
+const yonetici = computed(() => auth.yonetici);
 
 // Yan menudeki baslik listesi. Icerikteki id'lerle birebir ayni
 // olmali - buradan tiklaninca o bolume kayiyor.

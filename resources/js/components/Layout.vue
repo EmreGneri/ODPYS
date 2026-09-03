@@ -33,6 +33,22 @@ const ogretmenMenu = [
 ];
 
 /**
+ * Gosterilecek menu. Yonetici menusune, SADECE super yoneticide
+ * "Yoneticiler" ekleniyor - okula bagli yonetici o ekrani hic
+ * gormuyor (asil kilit API'nin superadmin middleware'inde, bu
+ * calismayacak bir link gostermemek icin).
+ */
+const menu = computed(() => {
+    if (! auth.yonetici) {
+        return ogretmenMenu;
+    }
+
+    return auth.superAdmin
+        ? [...yoneticiMenu, { ad: 'Yöneticiler', rota: 'yoneticiler' }]
+        : yoneticiMenu;
+});
+
+/**
  * Kullanicinin bas harfleri - profil butonundaki kucuk yuvarlak
  * icin. Ogretmen listesindeki avatar ile ayni fikir: fotograf yok,
  * o yuzden isim uzerinden bir simge uretiyoruz.
@@ -61,7 +77,7 @@ async function cikisYap() {
                 <div class="flex justify-between h-16">
                     <div class="flex items-center gap-4 overflow-x-auto">
                         <router-link
-                            v-for="oge in (auth.rol === 'admin' ? yoneticiMenu : ogretmenMenu)"
+                            v-for="oge in menu"
                             :key="oge.rota"
                             :to="{ name: oge.rota }"
                             class="text-sm whitespace-nowrap pt-1 border-b-2 h-16 flex items-center transition"

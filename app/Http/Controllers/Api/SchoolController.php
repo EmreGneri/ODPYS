@@ -9,6 +9,7 @@ use App\Models\Level;
 use App\Models\School;
 use App\Models\Teacher;
 use App\Services\OkulAyarServisi;
+use Illuminate\Http\Request;
 
 class SchoolController extends Controller
 {
@@ -65,9 +66,20 @@ class SchoolController extends Controller
      * aktif okul disindaki her okul 0 gorunur. withoutGlobalScopes ile
      * her okul icin ayri sayiyorum.
      */
-    public function okullar()
+    public function okullar(Request $request)
     {
-        $okullar = School::orderBy('name')->get()->map(function ($okul) {
+        $kullanici = $request->user();
+
+        $sorgu = School::orderBy('name');
+
+        // Okula bagli yonetici SADECE kendi okulunu gorur. Bu ekran
+        // "okullar arasi gecis" ekrani oldugu icin, listeyi
+        // filtrelemek onun icin gecis ihtimalini de ortadan kaldiriyor.
+        if ($kullanici?->okulaBagliYoneticiMi()) {
+            $sorgu->where('id', $kullanici->school_id);
+        }
+
+        $okullar = $sorgu->get()->map(function ($okul) {
             $okul->seviye_sayisi = Level::withoutGlobalScopes()
                 ->where('school_id', $okul->id)->count();
             $okul->ogretmen_sayisi = Teacher::withoutGlobalScopes()
@@ -79,6 +91,10 @@ class SchoolController extends Controller
         return [
             'okullar' => $okullar,
             'aktifId' => School::aktif()?->id,
+            // Arayuz "Okul Ekle" ve "Aktif Yap" dugmelerini buna gore
+            // gizliyor. Asil kilit sunucuda (superadmin middleware'i);
+            // bu sadece kullaniciya calismayacak dugme gostermemek icin.
+            'superAdmin' => (bool) $kullanici?->superAdminMi(),
         ];
     }
 
@@ -97,8 +113,17 @@ class SchoolController extends Controller
      * Aktif okulu degistirir - web tarafindaki SchoolController@aktifYap
      * ile birebir ayni mantik, sadece JSON donuyor.
      */
-    public function aktifYap(School $okul)
+    public function aktifYap(School $okul, Request $request)
     {
+        // Rota zaten 'superadmin' middleware'i altinda; bu ikinci
+        // kontrol bilincli bir tekrar. Bu metot oturuma DOGRUDAN aktif
+        // okul yaziyor, yani butun coklu okul filtrelemesinin kilidi -
+        // rota grubu ileride yanlislikla degistirilirse burasi hala
+        // tutsun.
+        if (! $request->user()?->superAdminMi()) {
+            abort(403, 'Okul değiştirme yetkiniz yok.');
+        }
+
         session(['aktif_okul_id' => $okul->id]);
 
         return ['mesaj' => "\"{$okul->name}\" aktif okul olarak seçildi."];

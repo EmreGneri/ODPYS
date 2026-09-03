@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\SchoolController as ApiSchoolController;
 use App\Http\Controllers\Api\SectionController as ApiSectionController;
 use App\Http\Controllers\Api\TeacherController as ApiTeacherController;
 use App\Http\Controllers\Api\UcretController as ApiUcretController;
+use App\Http\Controllers\Api\YoneticiController as ApiYoneticiController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -75,11 +76,26 @@ Route::middleware(['auth:sanctum', 'aktifokul'])->group(function () {
         Route::get('/ucretler', [ApiUcretController::class, 'index']);
 
         // Okul ayarlari + coklu okul
+        // Bunlar HER yonetici icin: okula bagli yonetici de kendi
+        // okulunun ayarlarini duzenleyebilmeli. Hangi okulun ayarlari
+        // geldigi School::aktif() tarafindan belirleniyor.
         Route::get('/okul', [ApiSchoolController::class, 'index']);
         Route::put('/okul', [ApiSchoolController::class, 'update']);
         Route::get('/okullar', [ApiSchoolController::class, 'okullar']);
-        Route::post('/okullar', [ApiSchoolController::class, 'okulEkle']);
-        Route::post('/okullar/{okul}/aktif-yap', [ApiSchoolController::class, 'aktifYap']);
+
+        // ───── SADECE SÜPER YÖNETİCİ ─────
+        // Okul ekleme ve okullar arasi gecis sistem seviyesinde
+        // islemler. Okula bagli bir yonetici bunlari yapabilseydi
+        // kendini baska okula gecirerek kisitlamayi asardi.
+        Route::middleware('superadmin')->group(function () {
+            Route::post('/okullar', [ApiSchoolController::class, 'okulEkle']);
+            Route::post('/okullar/{okul}/aktif-yap', [ApiSchoolController::class, 'aktifYap']);
+
+            Route::get('/yoneticiler', [ApiYoneticiController::class, 'index']);
+            Route::post('/yoneticiler', [ApiYoneticiController::class, 'store']);
+            Route::put('/yoneticiler/{yonetici}', [ApiYoneticiController::class, 'update']);
+            Route::delete('/yoneticiler/{yonetici}', [ApiYoneticiController::class, 'destroy']);
+        });
 
         Route::apiResource('seviyeler', ApiLevelController::class)
             ->parameters(['seviyeler' => 'seviye'])

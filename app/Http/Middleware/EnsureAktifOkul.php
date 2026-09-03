@@ -13,14 +13,26 @@ use Symfony\Component\HttpFoundation\Response;
  * HICBIR SEY filtrelemez - yani bu middleware calismazsa coklu okulda
  * tum okullarin verisi karisir. Bu yuzden admin ve teacher route
  * gruplarinin ikisine de uygulaniyor.
- *
- * @param  Closure(Request): (Response)  $next
  */
 class EnsureAktifOkul
 {
+    /**
+     * @param  Closure(Request): (Response)  $next
+     */
     public function handle(Request $request, Closure $next): Response
     {
-        School::aktif();
+        $okul = School::aktif();
+
+        // Okula bagli yoneticinin okulu yoksa (hic atanmamis ya da okulu
+        // silinmis) istegi BURADA kesiyoruz.
+        //
+        // Devam etseydik School::aktif() null dondugu icin oturumda okul
+        // id'si olmaz, OkulScope da hicbir sey filtrelemez ve kullanici
+        // BUTUN okullarin verisini gorurdu - kisitlamanin tam tersi.
+        // Yetki belirsizse istek calismasin.
+        if (! $okul && $request->user()?->okulaBagliYoneticiMi()) {
+            abort(403, 'Hesabınıza bir okul atanmamış. Süper yönetici ile iletişime geçin.');
+        }
 
         return $next($request);
     }

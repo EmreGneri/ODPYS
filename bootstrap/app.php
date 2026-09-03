@@ -21,6 +21,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
             'teacher' => \App\Http\Middleware\EnsureUserIsTeacher::class,
             'aktifokul' => \App\Http\Middleware\EnsureAktifOkul::class,
+            // Sadece superadmin: okul ekleme, okullar arasi gecis ve
+            // yonetici atama gibi sistem seviyesindeki islemler.
+            'superadmin' => \App\Http\Middleware\EnsureUserIsSuperAdmin::class,
         ]);
     })
 

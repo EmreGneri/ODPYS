@@ -21,9 +21,19 @@ use Illuminate\View\View;
  */
 class AuthenticatedSessionController extends Controller
 {
+    /**
+     * Hangi giris sayfasindan hangi roller girebilir.
+     *
+     * "yonetici" sayfasi ikisini de kabul ediyor: superadmin de bir
+     * yoneticidir, ayri bir giris sayfasi olmasi anlamsiz olurdu.
+     * Dizi (tek deger degil) tutuluyor cunku superadmin eklendiginde
+     * tek degerli karsilastirma superadmin'i KENDI SISTEMINE
+     * sokamiyordu - mevcut yonetici hesabi dahil hicbir superadmin
+     * giris yapamaz hale gelmisti.
+     */
     private const ROL_ESLESTIRME = [
-        'yonetici' => 'admin',
-        'ogretmen' => 'teacher',
+        'yonetici' => ['admin', 'superadmin'],
+        'ogretmen' => ['teacher'],
     ];
 
     /**
@@ -52,9 +62,9 @@ class AuthenticatedSessionController extends Controller
     {
         $request->authenticate();
 
-        $beklenenRol = self::ROL_ESLESTIRME[$rol];
+        $kabulEdilenRoller = self::ROL_ESLESTIRME[$rol];
 
-        if (Auth::user()->role !== $beklenenRol) {
+        if (! in_array(Auth::user()->role, $kabulEdilenRoller, true)) {
             Auth::guard('web')->logout();
 
             throw ValidationException::withMessages([

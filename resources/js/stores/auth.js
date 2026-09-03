@@ -16,6 +16,23 @@ export const useAuthStore = defineStore('auth', {
     getters: {
         girisYapilmis: (state) => state.kullanici !== null,
         rol: (state) => state.kullanici?.role ?? null,
+
+        /**
+         * Butun okullara erisen yonetici. Okul ekleme, okullar arasi
+         * gecis ve yonetici atama sadece onda.
+         */
+        superAdmin: (state) => state.kullanici?.role === 'superadmin',
+
+        /**
+         * "Yonetici ekranlarina girebilir mi?" - superadmin DE girer.
+         *
+         * Bu getter olmadan rol karsilastirmasi kesin esitlikle
+         * yapiliyordu (rol === 'admin'); superadmin eklenince
+         * superadmin butun yonetici sayfalarindan geri cevrilirdi ve
+         * dashboard'un kendisi de 'admin' istedigi icin sonsuz
+         * yonlendirmeye girerdi.
+         */
+        yonetici: (state) => ['admin', 'superadmin'].includes(state.kullanici?.role),
     },
 
     actions: {

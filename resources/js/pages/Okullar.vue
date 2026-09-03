@@ -5,6 +5,12 @@ import api from '../api';
 
 const okullar = ref([]);
 const aktifId = ref(null);
+
+// Okul ekleme ve okullar arasi gecis SADECE super yoneticide.
+// Degeri sunucudan geliyor; asil kilit de orada (superadmin
+// middleware'i) - bu sadece calismayacak dugme gostermemek icin.
+const superAdmin = ref(false);
+
 const yukleniyor = ref(true);
 const mesaj = ref('');
 const hata = ref('');
@@ -19,6 +25,7 @@ async function yukle() {
     const { data } = await api.get('/okullar');
     okullar.value = data.okullar;
     aktifId.value = data.aktifId;
+    superAdmin.value = data.superAdmin;
     yukleniyor.value = false;
 }
 
@@ -56,11 +63,17 @@ onMounted(yukle);
                     {{ hata }}
                 </div>
 
-                <div class="flex items-center justify-between">
+                <div class="flex items-center justify-between gap-4">
                     <p class="text-sm text-gray-600">
-                        Aktif okul, tüm ekranlarda (öğretmenler, dersler, program) görülen ve değiştirilen okuldur.
+                        <template v-if="superAdmin">
+                            Aktif okul, tüm ekranlarda (öğretmenler, dersler, program) görülen ve değiştirilen okuldur.
+                        </template>
+                        <template v-else>
+                            Bu okulun yöneticisisiniz; bütün ekranlar bu okulun verilerini gösterir.
+                            Başka bir okula geçiş yetkiniz yok.
+                        </template>
                     </p>
-                    <button @click="formAcik = !formAcik"
+                    <button v-if="superAdmin" @click="formAcik = !formAcik"
                             class="shrink-0 px-4 py-2 bg-gray-800 text-white text-sm rounded hover:bg-gray-700">
                         Yeni Okul Ekle
                     </button>
@@ -139,9 +152,10 @@ onMounted(yukle);
                                     <span v-else class="text-gray-400 text-xs">—</span>
                                 </td>
                                 <td class="px-6 py-3 text-right">
-                                    <button v-if="okul.id !== aktifId" @click="aktifYap(okul)"
+                                    <button v-if="superAdmin && okul.id !== aktifId" @click="aktifYap(okul)"
                                             class="text-indigo-600 hover:text-indigo-900 text-sm">Aktif Yap</button>
-                                    <span v-else class="text-gray-300 text-sm">Şu an aktif</span>
+                                    <span v-else-if="okul.id === aktifId" class="text-gray-300 text-sm">Şu an aktif</span>
+                                    <span v-else class="text-gray-300 text-sm">—</span>
                                 </td>
                             </tr>
                         </tbody>

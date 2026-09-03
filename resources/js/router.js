@@ -188,6 +188,14 @@ const routes = [
         meta: { auth: true },
     },
 
+    // ───── Sadece super yonetici ─────
+    {
+        path: '/app/yoneticiler',
+        name: 'yoneticiler',
+        component: () => import('./pages/Yoneticiler.vue'),
+        meta: { auth: true, role: 'superadmin' },
+    },
+
     // ───── /app: role gore dogru anasayfaya yonlendir ─────
     // Burada 'redirect' KULLANMIYORUM: Vue Router'da redirect, guard'dan
     // ONCE calisir - yani auth.kontrolEt() henuz calismamis olur ve
@@ -207,6 +215,21 @@ const router = createRouter({
     routes,
 });
 
+/**
+ * Rota'nin istedigi rol karsilaniyor mu?
+ *
+ * 'admin' isteyen bir sayfaya superadmin de girer (yoneticinin
+ * yapabildigi her seyi yapabilir). 'superadmin' isteyen sayfaya ise
+ * sadece superadmin girer.
+ */
+function rolYeterliMi(gerekliRol, auth) {
+    if (gerekliRol === 'admin') {
+        return auth.yonetici;
+    }
+
+    return auth.rol === gerekliRol;
+}
+
 router.beforeEach(async (to) => {
     const auth = useAuthStore();
 
@@ -219,8 +242,14 @@ router.beforeEach(async (to) => {
     }
 
     // Rolu uymayan kullanici kendi anasayfasina gidiyor. Bu sadece UX -
-    // gercek yetki kontrolu API'nin admin/teacher middleware'lerinde.
-    if (to.meta.role && auth.rol !== to.meta.role) {
+    // gercek yetki kontrolu API'nin admin/teacher/superadmin
+    // middleware'lerinde.
+    //
+    // Kesin esitlik (auth.rol === to.meta.role) KULLANILMIYOR: superadmin
+    // eklenince o karsilastirma superadmin'i butun 'admin' sayfalarindan
+    // geri cevirirdi ve dashboard'un kendisi de 'admin' istedigi icin
+    // sonsuz yonlendirme olusurdu.
+    if (to.meta.role && ! rolYeterliMi(to.meta.role, auth)) {
         return { name: auth.rol === 'teacher' ? 'ogretmen-panel' : 'dashboard' };
     }
 
